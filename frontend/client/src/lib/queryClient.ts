@@ -16,21 +16,17 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-// Ensure URL has correct base for Spring Boot API
+  // Ensure URL has correct base for Spring Boot API
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
   
   // Get auth token from cookies
   const token = Cookies.get("auth_token");
   
   // Prepare headers
-  const headers: HeadersInit = {};
-  
-  if (data) {
-    headers["Content-Type"] = "application/json";
-    headers["Accept"] = "application/json";
-  } else {
-    headers["Accept"] = "application/json";
-  }
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  };
   
   // Add authorization header if token exists
   if (token) {
@@ -54,28 +50,21 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-// Ensure URL has correct base for Spring Boot
     const url = queryKey[0] as string;
     const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
     
-    // Get auth token from cookies
     const token = Cookies.get("auth_token");
-    
-    // Prepare headers
     const headers: HeadersInit = {
       "Accept": "application/json"
     };
     
-    // Add authorization header if token exists
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
     
     const res = await fetch(fullUrl, {
       credentials: "include",
-      headers: {
-        "Accept": "application/json"
-      }
+      headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
