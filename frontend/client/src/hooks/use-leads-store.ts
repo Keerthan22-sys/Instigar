@@ -59,9 +59,6 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
       console.error('Error fetching leads:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Failed to fetch leads', 
-<<<<<<< Updated upstream
-        isLoading: false
-=======
         isLoading: false,
         leads: [] // Set empty array instead of initialLeads to avoid confusion
       });
