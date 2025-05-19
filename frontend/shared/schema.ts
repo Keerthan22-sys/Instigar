@@ -1,4 +1,4 @@
-import { channel } from "diagnostics_channel";
+//import { channel } from "diagnostics_channel";
 import { z } from "zod";
 
 // Spring Boot API schema
@@ -11,7 +11,7 @@ export const springLeadSchema = z.object({
   status : z.string().default("New"),
   notes: z.string().optional().default(""),
   action : z.string().default("New"),
-  channel: z.string().default(""),
+  //channel: z.string().default(""),
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(1, "Phone number is required"),
   course: z.string().optional().default(""),
@@ -23,14 +23,16 @@ export const springLeadSchema = z.object({
 });
 
 // Schema for creating a lead from the frontend form
-export const createLeadSchema = springLeadSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  dateAdded: true
-}).extend({
+export const createLeadSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().min(1, "Phone number is required"),
+  stage: z.string().default("Intake"),
+  source: z.string().default("Direct"),
+  assignedTo: z.string().default("Unassigned"),
+  notes: z.string().optional().default(""),
+  course: z.string().optional().default("")
 });
 
 // Modified schema for frontend display
@@ -43,7 +45,7 @@ export const leadDisplaySchema = z.object({
   stage: z.string(),
   source: z.string(),
   assignedTo: z.string(),
-  channel: z.string().optional().default("Email"),
+  //channel: z.string().optional().default("Email"),
   status: z.string().optional().default("Inactive"),
   dateAdded: z.date().or(z.string()),
   action: z.string().optional().default("Complete form"),

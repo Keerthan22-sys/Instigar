@@ -25,7 +25,12 @@ export async function apiRequest(
   // Prepare headers
   const headers: HeadersInit = {
     "Content-Type": "application/json",
+<<<<<<< Updated upstream
     "Accept": "application/json"
+=======
+    "Accept": "application/json",
+    "Origin": "http://localhost:3001"
+>>>>>>> Stashed changes
   };
   
   // Add authorization header if token exists
@@ -33,15 +38,25 @@ export async function apiRequest(
     headers["Authorization"] = `Bearer ${token}`;
   }
   
-  const res = await fetch(fullUrl, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(fullUrl, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+      mode: "cors" // Explicitly set CORS mode
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+    }
+
+    return res;
+  } catch (error) {
+    console.error('API request failed:', error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

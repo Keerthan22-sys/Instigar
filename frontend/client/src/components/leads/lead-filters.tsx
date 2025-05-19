@@ -24,7 +24,7 @@ export type FilterOptions = {
   status: FilterItem[];
   source: FilterItem[];
   assigned: FilterItem[];
-  channel: FilterItem[];
+  //channel: FilterItem[];
 };
 
 export interface FilterState {
@@ -54,12 +54,12 @@ const filterOptions: Omit<FilterOptions, 'assigned'> = {
     { label: "Referral", value: "referral" },
     { label: "Direct", value: "direct" },
   ],
-  channel: [
-    { label: "Email", value: "email" },
-    { label: "Phone", value: "phone" },
-    { label: "Web form", value: "web_form" },
-    { label: "Social media", value: "social_media" },
-  ],
+  // channel: [
+  //   { label: "Email", value: "email" },
+  //   { label: "Phone", value: "phone" },
+  //   { label: "Web form", value: "web_form" },
+  //   { label: "Social media", value: "social_media" },
+  // ],
 };
 
 const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
@@ -69,7 +69,7 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
     status: [],
     source: [],
     assigned: [],
-    channel: [],
+    //channel: [],
   });
   
   // Get assignees from the shared store
@@ -133,7 +133,7 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
       status: [],
       source: [],
       assigned: [],
-      channel: [],
+      //channel: [],
     });
     setDate(undefined);
   };
@@ -330,7 +330,7 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
         {createFilterDropdown("status", "Status")}
         {createFilterDropdown("source", "Source")}
         {createFilterDropdown("assigned", "Assigned to")}
-        {createFilterDropdown("channel", "Channel")}
+        {/* {createFilterDropdown("channel", "Channel")}  */}
 
         <Button 
           variant="ghost" 

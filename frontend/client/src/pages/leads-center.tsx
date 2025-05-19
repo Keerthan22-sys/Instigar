@@ -104,8 +104,17 @@ const LeadsCenter = () => {
   };
   
   const handleCreateLead = async (lead: any) => {
-    await addLead(lead);
-    closeCreateModal();
+    try {
+      console.log('Creating lead with data:', lead); // Debug log
+      await addLead(lead);
+      closeCreateModal();
+      // Refresh the leads list after successful creation
+      await fetchLeads();
+    } catch (error) {
+      console.error('Error creating lead:', error);
+      // Keep the modal open if there's an error
+      // The error will be shown in the error alert
+    }
   };
 
   return (

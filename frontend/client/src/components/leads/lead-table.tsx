@@ -7,7 +7,7 @@ import { ChevronDown, ArrowDown, ArrowUpDown } from "lucide-react";
 import LeadInitials from "@/components/leads/lead-initials";
 import { type Lead } from "@shared/schema";
 
-type SortField = "dateAdded" | "name" | "stage" | "source" | "assignedTo" | "channel" | "status";
+type SortField = "dateAdded" | "name" | "stage" | "source" | "assignedTo" | "status";
 type SortDirection = "asc" | "desc";
 
 interface LeadTableProps {
@@ -76,8 +76,8 @@ const LeadTable = ({ leads }: LeadTableProps) => {
         return direction * a.source.localeCompare(b.source);
       case "assignedTo":
         return direction * a.assignedTo.localeCompare(b.assignedTo);
-      case "channel":
-        return direction * a.channel.localeCompare(b.channel);
+      // case "channel":
+      //   return direction * a.channel.localeCompare(b.channel);
       case "status":
         return direction * a.status.localeCompare(b.status);
       default:
@@ -142,7 +142,7 @@ const LeadTable = ({ leads }: LeadTableProps) => {
                   {getSortIcon("assignedTo")}
                 </button>
               </TableHead>
-              <TableHead>
+              {/* <TableHead>
                 <button 
                   className="flex items-center text-xs font-medium text-[#606770] uppercase tracking-wider"
                   onClick={() => handleSort("channel")}
@@ -150,7 +150,7 @@ const LeadTable = ({ leads }: LeadTableProps) => {
                   Channel
                   {getSortIcon("channel")}
                 </button>
-              </TableHead>
+              </TableHead> */}
               <TableHead>
                 <button 
                   className="flex items-center text-xs font-medium text-[#606770] uppercase tracking-wider"
@@ -198,7 +198,7 @@ const LeadTable = ({ leads }: LeadTableProps) => {
                     <ChevronDown className="h-3 w-3 ml-2" />
                   </div>
                 </TableCell>
-                <TableCell className="text-sm text-[#1C1E21]">{lead.channel}</TableCell>
+                {/* <TableCell className="text-sm text-[#1C1E21]">{lead.channel}</TableCell> */}
                 <TableCell>
                   {lead.status === "Inactive" ? (
                     <Badge variant="secondary" className="bg-[#F5F7FA] text-[#606770] hover:bg-[#F5F7FA] hover:text-[#606770]">

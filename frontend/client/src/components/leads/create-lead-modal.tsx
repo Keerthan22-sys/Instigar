@@ -39,10 +39,8 @@ const CreateLeadModal = ({ isOpen, onClose, onCreateLead }: CreateLeadModalProps
     }
   });
 
-  const onSubmit = (data: CreateLead) => {
+  const onSubmit = async (data: CreateLead) => {
     try {
-      console.log("Form submitted with data:", data);
-      
       // Format data for Spring Boot API
       const apiData = {
         name: `${data.firstName} ${data.lastName}`,
@@ -53,15 +51,17 @@ const CreateLeadModal = ({ isOpen, onClose, onCreateLead }: CreateLeadModalProps
         assignedTo: data.assignedTo,
         notes: data.notes,
         course: data.course,
-        createdBy: data.createdBy,
-        updatedBy: data.updatedBy
+        dateAdded: new Date().toISOString().split('T')[0] // Format as YYYY-MM-DD
       };
       
-      onCreateLead(apiData);
+      console.log('Submitting lead data:', apiData); // Debug log
+      await onCreateLead(apiData);
       reset();
       onClose(); // Close modal after successful submission
     } catch (error) {
       console.error("Error submitting form:", error);
+      // Show error message to user
+      alert(error instanceof Error ? error.message : 'Failed to create lead. Please try again.');
     }
   };
 
@@ -224,7 +224,7 @@ const CreateLeadModal = ({ isOpen, onClose, onCreateLead }: CreateLeadModalProps
               Cancel
             </Button>
             <Button 
-              type="submit" 
+              type="submit"
               className="bg-[#0866FF] hover:bg-[#0866FF]/90 text-white font-medium min-w-[120px]"
             >
               Create Lead
