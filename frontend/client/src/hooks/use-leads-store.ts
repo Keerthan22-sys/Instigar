@@ -28,11 +28,7 @@ const convertToLeadDisplay = (springLead: SpringLead): Lead => {
     stage: springLead.stage,
     source: springLead.source,
     assignedTo: springLead.assignedTo,
-<<<<<<< Updated upstream
-    channel: 'Email',
-=======
     //channel: 'Email',
->>>>>>> Stashed changes
     status: 'Active',
     dateAdded: springLead.dateAdded ? new Date(springLead.dateAdded) : new Date(),
     action: 'Complete form',
@@ -50,10 +46,6 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiRequest('GET', '/api/leads');
-<<<<<<< Updated upstream
-      const data = await response.json();
-      const convertedLeads = Array.isArray(data) ? data.map(convertToLeadDisplay) : [];
-=======
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -62,7 +54,6 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
         throw new Error('Invalid response format: expected an array of leads');
       }
       const convertedLeads = data.map(convertToLeadDisplay);
->>>>>>> Stashed changes
       set({ leads: convertedLeads, isLoading: false });
     } catch (error) {
       console.error('Error fetching leads:', error);
@@ -73,7 +64,6 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
 =======
         isLoading: false,
         leads: [] // Set empty array instead of initialLeads to avoid confusion
->>>>>>> Stashed changes
       });
     }
   },
@@ -81,10 +71,6 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
   addLead: async (lead) => {
     set({ isLoading: true, error: null });
     try {
-<<<<<<< Updated upstream
-      const response = await apiRequest('POST', '/api/leads', lead);
-      const data = await response.json();
-=======
       console.log('Sending lead data to API:', lead); // Debug log
       const response = await apiRequest('POST', '/api/leads', lead);
       
@@ -96,18 +82,13 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
       const data = await response.json();
       console.log('API response:', data); // Debug log
       
->>>>>>> Stashed changes
       const newLead = convertToLeadDisplay(data);
       
       // Update the leads list with the new lead at the beginning
       set((state) => ({
         leads: [newLead, ...state.leads],
-<<<<<<< Updated upstream
-        isLoading: false
-=======
         isLoading: false,
         error: null
->>>>>>> Stashed changes
       }));
     } catch (error) {
       console.error('Error adding lead:', error);
@@ -115,10 +96,7 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
         error: error instanceof Error ? error.message : 'Failed to add lead', 
         isLoading: false 
       });
-<<<<<<< Updated upstream
-=======
       throw error; // Re-throw to let the UI handle the error
->>>>>>> Stashed changes
     }
   },
   

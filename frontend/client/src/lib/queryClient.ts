@@ -25,12 +25,8 @@ export async function apiRequest(
   // Prepare headers
   const headers: HeadersInit = {
     "Content-Type": "application/json",
-<<<<<<< Updated upstream
-    "Accept": "application/json"
-=======
     "Accept": "application/json",
     "Origin": "http://localhost:3001"
->>>>>>> Stashed changes
   };
   
   // Add authorization header if token exists
