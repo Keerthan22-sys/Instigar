@@ -19,22 +19,24 @@ const convertToLeadDisplay = (springLead: SpringLead): Lead => {
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
   
-  return {
+  console.log('Converting API lead:', springLead);
+  const convertedLead = {
     id: springLead.id || 0,
     firstName,
     lastName,
     email: springLead.email,
     phone: springLead.phone,
     stage: springLead.stage,
-    source: springLead.source,
+    channel: springLead.source?.toLowerCase().replace('_', '-') || '', // Convert walk_ins to walk-ins
     assignedTo: springLead.assignedTo,
-    //channel: 'Email',
     status: 'Active',
     dateAdded: springLead.dateAdded ? new Date(springLead.dateAdded) : new Date(),
     action: 'Complete form',
     notes: springLead.notes || '',
     course: springLead.course || ''
   };
+  console.log('Converted lead:', convertedLead);
+  return convertedLead;
 };
 
 export const useLeadsStore = create<LeadsState>((set, get) => ({

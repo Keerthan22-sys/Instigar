@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { ChevronDown, CalendarIcon, Plus, X } from "lucide-react";
 import { useAssigneesStore, type Assignee } from "@/hooks/use-assignees-store";
+import { useChannelsStore } from "@/hooks/use-channels-store";
 
 export type FilterItem = {
   label: string;
@@ -22,9 +23,8 @@ export type FilterItem = {
 export type FilterOptions = {
   forms: FilterItem[];
   status: FilterItem[];
-  source: FilterItem[];
+  channel: FilterItem[];
   assigned: FilterItem[];
-  //channel: FilterItem[];
 };
 
 export interface FilterState {
@@ -36,8 +36,8 @@ export interface LeadFiltersProps {
   onFilterChange: (filters: FilterState) => void;
 }
 
-// Filter options for everything except assignees, which come from the store
-const filterOptions: Omit<FilterOptions, 'assigned'> = {
+// Filter options for everything except assignees and channels, which come from their respective stores
+const filterOptions: Omit<FilterOptions, 'assigned' | 'channel'> = {
   forms: [
     { label: "Contact Form", value: "contact_form" },
     { label: "Landing Page", value: "landing_page" },
@@ -48,18 +48,6 @@ const filterOptions: Omit<FilterOptions, 'assigned'> = {
     { label: "Inactive", value: "inactive" },
     { label: "Complete form", value: "complete_form" },
   ],
-  source: [
-    { label: "Paid", value: "paid" },
-    { label: "Organic", value: "organic" },
-    { label: "Referral", value: "referral" },
-    { label: "Direct", value: "direct" },
-  ],
-  // channel: [
-  //   { label: "Email", value: "email" },
-  //   { label: "Phone", value: "phone" },
-  //   { label: "Web form", value: "web_form" },
-  //   { label: "Social media", value: "social_media" },
-  // ],
 };
 
 const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
@@ -67,18 +55,22 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
   const [filters, setFilters] = useState<Record<string, string[]>>({
     forms: [],
     status: [],
-    source: [],
+    channel: [],
     assigned: [],
-    //channel: [],
   });
   
-  // Get assignees from the shared store
+  // Get assignees and channels from their respective stores
   const assignees = useAssigneesStore(state => state.assignees);
   const addAssignee = useAssigneesStore(state => state.addAssignee);
   const removeAssignee = useAssigneesStore(state => state.removeAssignee);
   
-  // State for the custom "Assigned to" name input
+  const channels = useChannelsStore(state => state.channels);
+  const addChannel = useChannelsStore(state => state.addChannel);
+  const removeChannel = useChannelsStore(state => state.removeChannel);
+  
+  // State for the custom inputs
   const [newAssignedName, setNewAssignedName] = useState("");
+  const [newChannelName, setNewChannelName] = useState("");
 
   // Notify parent component when filters change
   useEffect(() => {
@@ -86,17 +78,22 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
   }, [date, filters, onFilterChange]);
 
   const handleFilterSelect = (filterType: string, value: string) => {
+    console.log('Filter selected:', filterType, value);
     setFilters((prev) => {
       const currentValues = prev[filterType] || [];
       if (currentValues.includes(value)) {
+        const newValues = currentValues.filter((v) => v !== value);
+        console.log('Removing value:', value, 'New values:', newValues);
         return {
           ...prev,
-          [filterType]: currentValues.filter((v) => v !== value),
+          [filterType]: newValues,
         };
       } else {
+        const newValues = [...currentValues, value];
+        console.log('Adding value:', value, 'New values:', newValues);
         return {
           ...prev,
-          [filterType]: [...currentValues, value],
+          [filterType]: newValues,
         };
       }
     });
@@ -127,13 +124,31 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
     removeAssignee(valueToRemove);
   };
 
+  // Add a new channel to the filter options
+  const handleAddChannel = () => {
+    if (!newChannelName.trim()) return;
+    addChannel(newChannelName);
+    setNewChannelName(""); // Clear the input
+  };
+
+  // Remove a channel from the filter options
+  const handleRemoveChannel = (valueToRemove: string) => {
+    // First remove it from selected filters if it's selected
+    setFilters(prev => ({
+      ...prev,
+      channel: prev.channel.filter(v => v !== valueToRemove)
+    }));
+    
+    // Then remove it from the store
+    removeChannel(valueToRemove);
+  };
+
   const clearFilters = () => {
     setFilters({
       forms: [],
       status: [],
-      source: [],
+      channel: [],
       assigned: [],
-      //channel: [],
     });
     setDate(undefined);
   };
@@ -219,6 +234,95 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveAssignedName(option.value);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+    
+    // Special case for "channel" filter type
+    if (filterType === 'channel') {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="outline" 
+              className={`px-3 py-2 h-auto text-sm font-medium flex items-center gap-1 ${
+                filters[filterType]?.length > 0 
+                  ? "bg-blue-50 text-primary border-primary" 
+                  : "text-[#606770]"
+              }`}
+            >
+              {icon}
+              {label} 
+              {filters[filterType]?.length > 0 && (
+                <span className="bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center mx-1">
+                  {filters[filterType].length}
+                </span>
+              )}
+              <ChevronDown className="h-3 w-3 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-64">
+            <div className="p-2 border-b">
+              <p className="text-xs text-gray-500 mb-1">Add a new channel:</p>
+              <div className="flex gap-2">
+                <Input 
+                  type="text"
+                  placeholder="Enter channel name"
+                  className="h-8 text-sm"
+                  value={newChannelName}
+                  onChange={(e) => setNewChannelName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddChannel();
+                    }
+                  }}
+                />
+                <Button 
+                  size="sm" 
+                  className="h-8 px-2"
+                  onClick={handleAddChannel}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+            
+            <div className="max-h-[300px] overflow-y-auto">
+              {channels.map((option) => (
+                <DropdownMenuItem key={option.value} className="flex items-center gap-2 justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id={`${filterType}-${option.value}`}
+                      checked={filters[filterType]?.includes(option.value)}
+                      onCheckedChange={() => handleFilterSelect(filterType, option.value)}
+                    />
+                    <label
+                      htmlFor={`${filterType}-${option.value}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                    >
+                      {option.label}
+                    </label>
+                  </div>
+                  
+                  {/* Don't allow deleting the default options */}
+                  {!['walk-ins', 'phone', 'website', 'social-media'].includes(option.value) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveChannel(option.value);
                       }}
                     >
                       <X className="h-3 w-3" />
@@ -328,9 +432,8 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
         </Popover>
         
         {createFilterDropdown("status", "Status")}
-        {createFilterDropdown("source", "Source")}
+        {createFilterDropdown("channel", "Channel")}
         {createFilterDropdown("assigned", "Assigned to")}
-        {/* {createFilterDropdown("channel", "Channel")}  */}
 
         <Button 
           variant="ghost" 

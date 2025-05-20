@@ -47,35 +47,51 @@ const LeadsCenter = () => {
     
     // Apply other filters
     if (activeFilters.filters) {
-      // Filter by source
-      if (activeFilters.filters.source && activeFilters.filters.source.length > 0) {
-        filtered = filtered.filter(lead => 
-          activeFilters.filters.source!.some(source =>
-            source.toLowerCase() === lead.source.toLowerCase()
-          )
-        );
+      // Filter by channel
+      if (activeFilters.filters.channel && activeFilters.filters.channel.length > 0) {
+        console.log('Filtering by channels:', activeFilters.filters.channel);
+        filtered = filtered.filter(lead => {
+          const leadChannel = lead.channel?.toLowerCase() || '';
+          const filterChannels = activeFilters.filters.channel!.map(c => c.toLowerCase());
+          console.log('Lead:', lead.firstName, lead.lastName);
+          console.log('Lead channel:', leadChannel);
+          console.log('Filter channels:', filterChannels);
+          
+          // Check if the lead's channel matches any of the selected filter channels
+          const matches = filterChannels.some(filterChannel => {
+            // Normalize both values for comparison
+            const normalizedLeadChannel = leadChannel.replace(/\s+/g, '-');
+            const normalizedFilterChannel = filterChannel.replace(/\s+/g, '-');
+            console.log('Comparing:', normalizedLeadChannel, 'with', normalizedFilterChannel);
+            return normalizedLeadChannel === normalizedFilterChannel;
+          });
+          
+          console.log('Match result:', matches);
+          return matches;
+        });
       }
       
       // Filter by status
       if (activeFilters.filters.status && activeFilters.filters.status.length > 0) {
-        filtered = filtered.filter(lead => 
-          activeFilters.filters.status!.some(status =>
-            status.toLowerCase() === lead.status.toLowerCase()
-          )
-        );
+        filtered = filtered.filter(lead => {
+          const leadStatus = lead.status?.toLowerCase() || '';
+          const filterStatuses = activeFilters.filters.status!.map(s => s.toLowerCase());
+          return filterStatuses.includes(leadStatus);
+        });
       }
       
       // Filter by assigned to
       if (activeFilters.filters.assigned && activeFilters.filters.assigned.length > 0) {
-        filtered = filtered.filter(lead => 
-          activeFilters.filters.assigned!.some(assigned =>
-            assigned.toLowerCase() === lead.assignedTo.toLowerCase() ||
-            (assigned === 'unassigned' && lead.assignedTo.toLowerCase() === 'unassigned')
-          )
-        );
+        filtered = filtered.filter(lead => {
+          const leadAssigned = lead.assignedTo?.toLowerCase() || '';
+          const filterAssigned = activeFilters.filters.assigned!.map(a => a.toLowerCase());
+          return filterAssigned.includes(leadAssigned) ||
+            (filterAssigned.includes('unassigned') && leadAssigned === 'unassigned');
+        });
       }
     }
     
+    console.log('Filtered leads:', filtered);
     setFilteredLeads(filtered);
   }, [leads, activeFilters]);
 

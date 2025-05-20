@@ -11,6 +11,7 @@ import { z } from "zod";
 import { X } from "lucide-react";
 import { createLeadSchema, type CreateLead } from "@shared/schema";
 import { useAssigneesStore } from "@/hooks/use-assignees-store";
+import { useChannelsStore } from "@/hooks/use-channels-store";
 
 interface CreateLeadModalProps {
   isOpen: boolean;
@@ -19,23 +20,22 @@ interface CreateLeadModalProps {
 }
 
 const CreateLeadModal = ({ isOpen, onClose, onCreateLead }: CreateLeadModalProps) => {
-  // Get assignees from shared store
+  // Get assignees and channels from shared stores
   const assignees = useAssigneesStore(state => state.assignees);
+  const channels = useChannelsStore(state => state.channels);
   
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateLead>({
-    resolver: zodResolver(createLeadSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
       phone: "",
-      source: "Paid",
       stage: "Intake",
+      channel: "walk-ins",
       assignedTo: "Unassigned",
       notes: "",
       course: "",
-      createdBy: "Web App",
-      updatedBy: "Web App"
     }
   });
 
@@ -47,7 +47,7 @@ const CreateLeadModal = ({ isOpen, onClose, onCreateLead }: CreateLeadModalProps
         email: data.email,
         phone: data.phone,
         stage: data.stage,
-        source: data.source,
+        source: data.channel.toLowerCase(),
         assignedTo: data.assignedTo,
         notes: data.notes,
         course: data.course,
@@ -153,18 +153,25 @@ const CreateLeadModal = ({ isOpen, onClose, onCreateLead }: CreateLeadModalProps
           </div>
           
           <div>
-            <Label htmlFor="source" className="text-sm font-medium text-[#606770]">
-              Source
+            <Label htmlFor="channel" className="text-sm font-medium text-[#606770]">
+              Channel
             </Label>
-            <Select defaultValue="Paid" onValueChange={(value) => setValue("source", value)}>
-              <SelectTrigger id="source" className="mt-1 border-[#E4E6EB]">
-                <SelectValue placeholder="Select source" />
+            <Select 
+              defaultValue="walk-ins" 
+              onValueChange={(value) => {
+                console.log('Selected channel value:', value);
+                setValue("channel", value.toLowerCase());
+              }}
+            >
+              <SelectTrigger id="channel" className="mt-1 border-[#E4E6EB]">
+                <SelectValue placeholder="Select channel" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Direct">Direct</SelectItem>
-                <SelectItem value="Referral">Referral</SelectItem>
-                <SelectItem value="Paid">Paid</SelectItem>
-                <SelectItem value="Organic">Organic</SelectItem>
+                {channels.map((channel) => (
+                  <SelectItem key={channel.value} value={channel.value}>
+                    {channel.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
