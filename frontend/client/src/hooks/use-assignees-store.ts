@@ -1,20 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Assignee = {
+export type FilterItem = {
   label: string;
   value: string;
 };
 
 interface AssigneesState {
-  assignees: Assignee[];
-  addAssignee: (name: string) => void;
+  assignees: FilterItem[];
+  addAssignee: (assignee: FilterItem) => void;
   removeAssignee: (value: string) => void;
-  getAssignees: () => Assignee[];
 }
 
 // Initial default assignees
-const defaultAssignees: Assignee[] = [
+const defaultAssignees: FilterItem[] = [
   { label: "Unassigned", value: "unassigned" },
   { label: "John Doe", value: "john_doe" },
   { label: "Jane Smith", value: "jane_smith" },
@@ -26,26 +25,21 @@ export const useAssigneesStore = create<AssigneesState>()(
     (set, get) => ({
       assignees: defaultAssignees,
       
-      addAssignee: (name: string) => {
-        if (!name.trim()) return;
+      addAssignee: (assignee) => {
+        if (!assignee.label.trim() || !assignee.value.trim()) return;
         
-        const value = name.trim().toLowerCase().replace(/\s+/g, '_');
+        const value = assignee.value.trim().toLowerCase().replace(/\s+/g, '_');
         
         // Check if already exists
         const exists = get().assignees.some(
-          a => a.label.toLowerCase() === name.trim().toLowerCase() || 
+          a => a.label.toLowerCase() === assignee.label.trim().toLowerCase() || 
                a.value === value
         );
         
         if (exists) return;
         
-        const newAssignee: Assignee = {
-          label: name.trim(),
-          value: value
-        };
-        
         set(state => ({
-          assignees: [...state.assignees, newAssignee]
+          assignees: [...state.assignees, assignee]
         }));
       },
       
@@ -57,10 +51,6 @@ export const useAssigneesStore = create<AssigneesState>()(
           assignees: state.assignees.filter(a => a.value !== value)
         }));
       },
-      
-      getAssignees: () => {
-        return get().assignees;
-      }
     }),
     {
       name: 'leads-assignees-storage', // unique name for localStorage

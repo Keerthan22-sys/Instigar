@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { ChevronDown, CalendarIcon, Plus, X } from "lucide-react";
-import { useAssigneesStore, type Assignee } from "@/hooks/use-assignees-store";
+import { useAssigneesStore } from "@/hooks/use-assignees-store";
 import { useChannelsStore } from "@/hooks/use-channels-store";
 
 export type FilterItem = {
@@ -25,6 +25,7 @@ export type FilterOptions = {
   status: FilterItem[];
   channel: FilterItem[];
   assigned: FilterItem[];
+  stage: FilterItem[];
 };
 
 export interface FilterState {
@@ -48,6 +49,11 @@ const filterOptions: Omit<FilterOptions, 'assigned' | 'channel'> = {
     { label: "Inactive", value: "inactive" },
     { label: "Complete form", value: "complete_form" },
   ],
+  stage: [
+    { label: "Intake", value: "intake" },
+    { label: "Qualified", value: "qualified" },
+    { label: "Converted", value: "converted" },
+  ],
 };
 
 const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
@@ -57,6 +63,7 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
     status: [],
     channel: [],
     assigned: [],
+    stage: [],
   });
   
   // Get assignees and channels from their respective stores
@@ -77,372 +84,241 @@ const LeadFilters = ({ onFilterChange }: LeadFiltersProps) => {
     onFilterChange({ date, filters });
   }, [date, filters, onFilterChange]);
 
-  const handleFilterSelect = (filterType: string, value: string) => {
-    console.log('Filter selected:', filterType, value);
-    setFilters((prev) => {
-      const currentValues = prev[filterType] || [];
-      if (currentValues.includes(value)) {
-        const newValues = currentValues.filter((v) => v !== value);
-        console.log('Removing value:', value, 'New values:', newValues);
-        return {
-          ...prev,
-          [filterType]: newValues,
-        };
-      } else {
-        const newValues = [...currentValues, value];
-        console.log('Adding value:', value, 'New values:', newValues);
-        return {
-          ...prev,
-          [filterType]: newValues,
-        };
-      }
+  const handleFilterChange = (filterType: string, value: string) => {
+    setFilters(prev => {
+      const currentFilters = prev[filterType] || [];
+      const newFilters = currentFilters.includes(value)
+        ? currentFilters.filter(v => v !== value)
+        : [...currentFilters, value];
+      
+      return {
+        ...prev,
+        [filterType]: newFilters
+      };
     });
   };
 
-  const handleDateSelect = (newDate: Date | undefined) => {
-    setDate(newDate);
+  const handleAddAssignee = () => {
+    if (newAssignedName.trim()) {
+      addAssignee({ label: newAssignedName, value: newAssignedName.toLowerCase() });
+      setNewAssignedName("");
+    }
   };
 
-  // Add a new name to the "Assigned to" filter options using shared store
-  const handleAddAssignedName = () => {
-    if (!newAssignedName.trim()) return;
-    
-    // Add to the shared store
-    addAssignee(newAssignedName);
-    setNewAssignedName(""); // Clear the input
-  };
-  
-  // Remove a name from the "Assigned to" filter options
-  const handleRemoveAssignedName = (valueToRemove: string) => {
-    // First remove it from selected filters if it's selected
-    setFilters(prev => ({
-      ...prev,
-      assigned: prev.assigned.filter(v => v !== valueToRemove)
-    }));
-    
-    // Then remove it from shared store
-    removeAssignee(valueToRemove);
-  };
-
-  // Add a new channel to the filter options
   const handleAddChannel = () => {
-    if (!newChannelName.trim()) return;
-    addChannel(newChannelName);
-    setNewChannelName(""); // Clear the input
-  };
-
-  // Remove a channel from the filter options
-  const handleRemoveChannel = (valueToRemove: string) => {
-    // First remove it from selected filters if it's selected
-    setFilters(prev => ({
-      ...prev,
-      channel: prev.channel.filter(v => v !== valueToRemove)
-    }));
-    
-    // Then remove it from the store
-    removeChannel(valueToRemove);
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      forms: [],
-      status: [],
-      channel: [],
-      assigned: [],
-    });
-    setDate(undefined);
-  };
-
-  const createFilterDropdown = (
-    filterType: keyof FilterOptions | 'assigned',
-    label: string,
-    icon?: React.ReactNode
-  ) => {
-    // Special case for "assigned" filter type
-    if (filterType === 'assigned') {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="outline" 
-              className={`px-3 py-2 h-auto text-sm font-medium flex items-center gap-1 ${
-                filters[filterType]?.length > 0 
-                  ? "bg-blue-50 text-primary border-primary" 
-                  : "text-[#606770]"
-              }`}
-            >
-              {icon}
-              {label} 
-              {filters[filterType]?.length > 0 && (
-                <span className="bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center mx-1">
-                  {filters[filterType].length}
-                </span>
-              )}
-              <ChevronDown className="h-3 w-3 ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-64">
-            <div className="p-2 border-b">
-              <p className="text-xs text-gray-500 mb-1">Add a new person to assign leads to:</p>
-              <div className="flex gap-2">
-                <Input 
-                  type="text"
-                  placeholder="Enter name"
-                  className="h-8 text-sm"
-                  value={newAssignedName}
-                  onChange={(e) => setNewAssignedName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddAssignedName();
-                    }
-                  }}
-                />
-                <Button 
-                  size="sm" 
-                  className="h-8 px-2"
-                  onClick={handleAddAssignedName}
-                >
-                  Add
-                </Button>
-              </div>
-            </div>
-            
-            <div className="max-h-[300px] overflow-y-auto">
-              {assignees.map((option) => (
-                <DropdownMenuItem key={option.value} className="flex items-center gap-2 justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id={`${filterType}-${option.value}`}
-                      checked={filters[filterType]?.includes(option.value)}
-                      onCheckedChange={() => handleFilterSelect(filterType, option.value)}
-                    />
-                    <label
-                      htmlFor={`${filterType}-${option.value}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                    >
-                      {option.label}
-                    </label>
-                  </div>
-                  
-                  {/* Don't allow deleting the default "Unassigned" option */}
-                  {option.value !== 'unassigned' && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveAssignedName(option.value);
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+    if (newChannelName.trim()) {
+      addChannel({ label: newChannelName, value: newChannelName.toLowerCase() });
+      setNewChannelName("");
     }
-    
-    // Special case for "channel" filter type
-    if (filterType === 'channel') {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="outline" 
-              className={`px-3 py-2 h-auto text-sm font-medium flex items-center gap-1 ${
-                filters[filterType]?.length > 0 
-                  ? "bg-blue-50 text-primary border-primary" 
-                  : "text-[#606770]"
-              }`}
-            >
-              {icon}
-              {label} 
-              {filters[filterType]?.length > 0 && (
-                <span className="bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center mx-1">
-                  {filters[filterType].length}
-                </span>
-              )}
-              <ChevronDown className="h-3 w-3 ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-64">
-            <div className="p-2 border-b">
-              <p className="text-xs text-gray-500 mb-1">Add a new channel:</p>
-              <div className="flex gap-2">
-                <Input 
-                  type="text"
-                  placeholder="Enter channel name"
-                  className="h-8 text-sm"
-                  value={newChannelName}
-                  onChange={(e) => setNewChannelName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddChannel();
-                    }
-                  }}
-                />
-                <Button 
-                  size="sm" 
-                  className="h-8 px-2"
-                  onClick={handleAddChannel}
-                >
-                  Add
-                </Button>
-              </div>
-            </div>
-            
-            <div className="max-h-[300px] overflow-y-auto">
-              {channels.map((option) => (
-                <DropdownMenuItem key={option.value} className="flex items-center gap-2 justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id={`${filterType}-${option.value}`}
-                      checked={filters[filterType]?.includes(option.value)}
-                      onCheckedChange={() => handleFilterSelect(filterType, option.value)}
-                    />
-                    <label
-                      htmlFor={`${filterType}-${option.value}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                    >
-                      {option.label}
-                    </label>
-                  </div>
-                  
-                  {/* Don't allow deleting the default options */}
-                  {!['walk-ins', 'phone', 'website', 'social-media'].includes(option.value) && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveChannel(option.value);
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    }
-    
-    // Standard filter dropdown for other filter types
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button 
-            variant="outline" 
-            className={`px-3 py-2 h-auto text-sm font-medium flex items-center gap-1 ${
-              filters[filterType]?.length > 0 
-                ? "bg-blue-50 text-primary border-primary" 
-                : "text-[#606770]"
-            }`}
-          >
-            {icon}
-            {label} 
-            {filters[filterType]?.length > 0 && (
-              <span className="bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center mx-1">
-                {filters[filterType].length}
-              </span>
-            )}
-            <ChevronDown className="h-3 w-3 ml-1" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56">
-          {filterOptions[filterType].map((option) => (
-            <DropdownMenuItem key={option.value} className="flex items-center gap-2">
-              <Checkbox
-                id={`${filterType}-${option.value}`}
-                checked={filters[filterType]?.includes(option.value)}
-                onCheckedChange={() => handleFilterSelect(filterType, option.value)}
-              />
-              <label
-                htmlFor={`${filterType}-${option.value}`}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-              >
-                {option.label}
-              </label>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
   };
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      <Button variant="outline" className="px-3 py-2 h-auto text-[#606770] text-sm flex items-center">
-        <Plus className="h-3 w-3 mr-2" /> Add filters
-      </Button>
-
-      {/* Filter dropdowns */}
-      <div className="flex flex-wrap gap-2 items-center">
-        {createFilterDropdown("forms", "Forms")}
-        
-        {/* Date filter */}
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4">
+        {/* Date Filter */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              className={`px-3 py-2 h-auto text-sm font-medium flex items-center gap-1 ${
-                date ? "bg-blue-50 text-primary border-primary" : "text-[#606770]"
+            <Button
+              variant="outline"
+              className={`w-[200px] justify-start text-left font-normal ${
+                date ? "text-[#1C1E21]" : "text-[#606770]"
               }`}
             >
-              <CalendarIcon className="h-3 w-3 mr-1" />
-              {date ? format(date, "PPP") : "Select dates"} <ChevronDown className="h-3 w-3 ml-1" />
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, "PPP") : "Select date"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
-            <div className="p-2 border-b border-gray-200">
-              <h3 className="text-sm font-medium">Select Date</h3>
-              <p className="text-xs text-gray-500">Filter leads by date</p>
-            </div>
             <Calendar
               mode="single"
               selected={date}
-              onSelect={handleDateSelect}
+              onSelect={setDate}
               initialFocus
-              toDate={new Date()}
             />
-            {date && (
-              <div className="p-2 border-t border-gray-200 flex justify-between">
-                <span className="text-xs text-gray-500">
-                  Filtering by {format(date, "MMMM d, yyyy")}
-                </span>
-                <Button 
-                  variant="ghost" 
-                  className="h-auto py-0 px-2 text-xs text-red-600 hover:text-red-800"
-                  onClick={() => handleDateSelect(undefined)}
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
           </PopoverContent>
         </Popover>
-        
-        {createFilterDropdown("status", "Status")}
-        {createFilterDropdown("channel", "Channel")}
-        {createFilterDropdown("assigned", "Assigned to")}
 
-        <Button 
-          variant="ghost" 
-          className="px-3 py-2 h-auto text-[#606770] text-sm font-medium flex items-center gap-1"
-          onClick={clearFilters}
-        >
-          <X className="h-3 w-3 mr-1" /> Clear filters
-        </Button>
+        {/* Stage Filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-[200px] justify-between">
+              Stage
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[200px]">
+            {filterOptions.stage.map((stage) => (
+              <DropdownMenuItem key={stage.value} className="flex items-center">
+                <Checkbox
+                  id={`stage-${stage.value}`}
+                  checked={filters.stage?.includes(stage.value)}
+                  onCheckedChange={() => handleFilterChange("stage", stage.value)}
+                  className="mr-2"
+                />
+                <label
+                  htmlFor={`stage-${stage.value}`}
+                  className="text-sm cursor-pointer"
+                >
+                  {stage.label}
+                </label>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Channel Filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-[200px] justify-between">
+              Channel
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[200px]">
+            {channels.map((channel) => (
+              <DropdownMenuItem key={channel.value} className="flex items-center">
+                <Checkbox
+                  id={`channel-${channel.value}`}
+                  checked={filters.channel?.includes(channel.value)}
+                  onCheckedChange={() => handleFilterChange("channel", channel.value)}
+                  className="mr-2"
+                />
+                <label
+                  htmlFor={`channel-${channel.value}`}
+                  className="text-sm cursor-pointer"
+                >
+                  {channel.label}
+                </label>
+              </DropdownMenuItem>
+            ))}
+            <div className="p-2 border-t">
+              <div className="flex gap-2">
+                <Input
+                  value={newChannelName}
+                  onChange={(e) => setNewChannelName(e.target.value)}
+                  placeholder="Add new channel"
+                  className="h-8"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleAddChannel}
+                  className="h-8"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Assigned To Filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-[200px] justify-between">
+              Assigned To
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[200px]">
+            {assignees.map((assignee) => (
+              <DropdownMenuItem key={assignee.value} className="flex items-center">
+                <Checkbox
+                  id={`assigned-${assignee.value}`}
+                  checked={filters.assigned?.includes(assignee.value)}
+                  onCheckedChange={() => handleFilterChange("assigned", assignee.value)}
+                  className="mr-2"
+                />
+                <label
+                  htmlFor={`assigned-${assignee.value}`}
+                  className="text-sm cursor-pointer"
+                >
+                  {assignee.label}
+                </label>
+              </DropdownMenuItem>
+            ))}
+            <div className="p-2 border-t">
+              <div className="flex gap-2">
+                <Input
+                  value={newAssignedName}
+                  onChange={(e) => setNewAssignedName(e.target.value)}
+                  placeholder="Add new assignee"
+                  className="h-8"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleAddAssignee}
+                  className="h-8"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Status Filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-[200px] justify-between">
+              Status
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[200px]">
+            {filterOptions.status.map((status) => (
+              <DropdownMenuItem key={status.value} className="flex items-center">
+                <Checkbox
+                  id={`status-${status.value}`}
+                  checked={filters.status?.includes(status.value)}
+                  onCheckedChange={() => handleFilterChange("status", status.value)}
+                  className="mr-2"
+                />
+                <label
+                  htmlFor={`status-${status.value}`}
+                  className="text-sm cursor-pointer"
+                >
+                  {status.label}
+                </label>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Active Filters Display */}
+      {(date || Object.values(filters).some(f => f.length > 0)) && (
+        <div className="flex flex-wrap gap-2">
+          {date && (
+            <div className="flex items-center gap-2 bg-[#F0F2F5] px-3 py-1 rounded-full">
+              <span className="text-sm text-[#1C1E21]">
+                Date: {format(date, "d MMM yyyy")}
+              </span>
+              <button
+                onClick={() => setDate(undefined)}
+                className="text-[#606770] hover:text-[#1C1E21]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          
+          {Object.entries(filters).map(([type, values]) =>
+            values.map((value) => (
+              <div key={`${type}-${value}`} className="flex items-center gap-2 bg-[#F0F2F5] px-3 py-1 rounded-full">
+                <span className="text-sm text-[#1C1E21]">
+                  {type}: {value}
+                </span>
+                <button
+                  onClick={() => handleFilterChange(type, value)}
+                  className="text-[#606770] hover:text-[#1C1E21]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };

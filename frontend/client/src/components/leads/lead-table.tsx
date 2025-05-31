@@ -6,18 +6,25 @@ import { format } from "date-fns";
 import { ChevronDown, ArrowDown, ArrowUpDown } from "lucide-react";
 import LeadInitials from "@/components/leads/lead-initials";
 import { type Lead } from "@shared/schema";
+import EditLeadModal from "./edit-lead-modal";
 
 type SortField = "dateAdded" | "name" | "stage" | "channel" | "assignedTo" | "status";
 type SortDirection = "asc" | "desc";
 
 interface LeadTableProps {
   leads: Lead[];
+  filters?: {
+    date?: Date;
+    filters: Record<string, string[]>;
+  };
 }
 
-const LeadTable = ({ leads }: LeadTableProps) => {
+const LeadTable = ({ leads, filters }: LeadTableProps) => {
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [sortField, setSortField] = useState<SortField>("dateAdded");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const toggleSelectAll = () => {
     if (selectedLeads.length === leads.length) {
@@ -62,26 +69,77 @@ const LeadTable = ({ leads }: LeadTableProps) => {
     }
   };
 
-  const sortedLeads = [...leads].sort((a, b) => {
-    const direction = sortDirection === "asc" ? 1 : -1;
-    
-    switch (sortField) {
-      case "dateAdded":
-        return direction * (new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime());
-      case "name":
-        return direction * (`${a.firstName} ${a.lastName}`).localeCompare(`${b.firstName} ${b.lastName}`);
-      case "stage":
-        return direction * a.stage.localeCompare(b.stage);
-      case "channel":
-        return direction * a.channel.localeCompare(b.channel);
-      case "assignedTo":
-        return direction * a.assignedTo.localeCompare(b.assignedTo);
-      case "status":
-        return direction * a.status.localeCompare(b.status);
-      default:
-        return 0;
-    }
-  });
+  const handleCellClick = (lead: Lead) => {
+    setSelectedLead(lead);
+    setIsEditModalOpen(true);
+  };
+
+  // Apply filters and sort the leads
+  const filteredAndSortedLeads = [...leads]
+    .filter(lead => {
+      // Filter by stage
+      if (filters?.filters?.stage && filters.filters.stage.length > 0) {
+        if (!filters.filters.stage.includes(lead.stage.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Filter by channel
+      if (filters?.filters?.channel && filters.filters.channel.length > 0) {
+        if (!filters.filters.channel.includes(lead.channel.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Filter by assigned to
+      if (filters?.filters?.assigned && filters.filters.assigned.length > 0) {
+        if (!filters.filters.assigned.includes(lead.assignedTo.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Filter by status
+      if (filters?.filters?.status && filters.filters.status.length > 0) {
+        if (!filters.filters.status.includes(lead.status.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Filter by date
+      if (filters?.date) {
+        const leadDate = new Date(lead.dateAdded);
+        const filterDate = new Date(filters.date);
+        if (
+          leadDate.getFullYear() !== filterDate.getFullYear() ||
+          leadDate.getMonth() !== filterDate.getMonth() ||
+          leadDate.getDate() !== filterDate.getDate()
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      const direction = sortDirection === "asc" ? 1 : -1;
+      
+      switch (sortField) {
+        case "dateAdded":
+          return direction * (new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime());
+        case "name":
+          return direction * (`${a.firstName} ${a.lastName}`).localeCompare(`${b.firstName} ${b.lastName}`);
+        case "stage":
+          return direction * a.stage.localeCompare(b.stage);
+        case "channel":
+          return direction * a.channel.localeCompare(b.channel);
+        case "assignedTo":
+          return direction * a.assignedTo.localeCompare(b.assignedTo);
+        case "status":
+          return direction * a.status.localeCompare(b.status);
+        default:
+          return 0;
+      }
+    });
 
   return (
     <div className="bg-white rounded-b-lg shadow-sm overflow-hidden">
@@ -91,7 +149,7 @@ const LeadTable = ({ leads }: LeadTableProps) => {
             <TableRow className="bg-white">
               <TableHead className="w-10">
                 <Checkbox 
-                  checked={selectedLeads.length === leads.length && leads.length > 0} 
+                  checked={selectedLeads.length === filteredAndSortedLeads.length && filteredAndSortedLeads.length > 0} 
                   onCheckedChange={toggleSelectAll} 
                 />
               </TableHead>
@@ -155,18 +213,27 @@ const LeadTable = ({ leads }: LeadTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedLeads.map((lead) => (
-              <TableRow key={lead.id} className="hover:bg-[#F0F2F5] cursor-pointer">
+            {filteredAndSortedLeads.map((lead) => (
+              <TableRow 
+                key={lead.id} 
+                className={`hover:bg-[#F0F2F5] ${lead.stage === "Converted" ? "bg-green-50" : ""}`}
+              >
                 <TableCell>
                   <Checkbox 
                     checked={selectedLeads.includes(lead.id)} 
                     onCheckedChange={() => toggleSelectLead(lead.id)} 
                   />
                 </TableCell>
-                <TableCell className="text-sm text-[#1C1E21]">
+                <TableCell 
+                  className="text-sm text-[#1C1E21] cursor-pointer"
+                  onClick={() => handleCellClick(lead)}
+                >
                   {formatDate(lead.dateAdded)}
                 </TableCell>
-                <TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => handleCellClick(lead)}
+                >
                   <div className="flex items-center">
                     <LeadInitials firstName={lead.firstName} lastName={lead.lastName} />
                     <span className="text-sm font-medium text-[#1C1E21]">
@@ -174,20 +241,34 @@ const LeadTable = ({ leads }: LeadTableProps) => {
                     </span>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => handleCellClick(lead)}
+                >
                   <div className="flex items-center text-sm text-[#1C1E21]">
                     <span>{lead.stage}</span>
                     <ChevronDown className="h-3 w-3 ml-2" />
                   </div>
                 </TableCell>
-                <TableCell className="text-sm text-[#1C1E21]">{lead.channel}</TableCell>
-                <TableCell>
+                <TableCell 
+                  className="text-sm text-[#1C1E21] cursor-pointer"
+                  onClick={() => handleCellClick(lead)}
+                >
+                  {lead.channel}
+                </TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => handleCellClick(lead)}
+                >
                   <div className="flex items-center text-sm text-[#1C1E21]">
                     <span>{lead.assignedTo}</span>
                     <ChevronDown className="h-3 w-3 ml-2" />
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => handleCellClick(lead)}
+                >
                   {lead.status === "Inactive" ? (
                     <Badge variant="secondary" className="bg-[#F5F7FA] text-[#606770] hover:bg-[#F5F7FA] hover:text-[#606770]">
                       Inactive
@@ -198,21 +279,35 @@ const LeadTable = ({ leads }: LeadTableProps) => {
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="text-sm text-[#4BB543] font-medium">
+                <TableCell 
+                  className="text-sm text-[#4BB543] font-medium cursor-pointer"
+                  onClick={() => handleCellClick(lead)}
+                >
                   {lead.action}
                 </TableCell>
               </TableRow>
             ))}
-            {leads.length === 0 && (
+            {filteredAndSortedLeads.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-[#606770]">
-                  No leads found. Create a new lead to get started.
+                  No leads found matching the current filters.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
+
+      {selectedLead && (
+        <EditLeadModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedLead(null);
+          }}
+          lead={selectedLead}
+        />
+      )}
     </div>
   );
 };

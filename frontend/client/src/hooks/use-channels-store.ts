@@ -1,34 +1,34 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export interface Channel {
+export type FilterItem = {
   label: string;
   value: string;
-}
+};
 
 interface ChannelsState {
-  channels: Channel[];
-  addChannel: (name: string) => void;
+  channels: FilterItem[];
+  addChannel: (channel: FilterItem) => void;
   removeChannel: (value: string) => void;
 }
 
 // Default channels
-const defaultChannels: Channel[] = [
+const defaultChannels: FilterItem[] = [
   { label: "Walk-ins", value: "walk-ins" },
   { label: "Phone", value: "phone" },
   { label: "Website", value: "website" },
-  { label: "Social media", value: "social-media" },
+  { label: "Social Media", value: "social-media" },
 ];
 
 // Load channels from localStorage or use defaults
-const loadChannels = (): Channel[] => {
+const loadChannels = (): FilterItem[] => {
   try {
     const storedChannels = localStorage.getItem('channels');
     if (storedChannels) {
       const parsedChannels = JSON.parse(storedChannels);
       // Ensure default channels are always present
       const defaultValues = defaultChannels.map(ch => ch.value);
-      const customChannels = parsedChannels.filter((ch: Channel) => !defaultValues.includes(ch.value));
+      const customChannels = parsedChannels.filter((ch: FilterItem) => !defaultValues.includes(ch.value));
       return [...defaultChannels, ...customChannels];
     }
   } catch (error) {
@@ -42,14 +42,13 @@ export const useChannelsStore = create<ChannelsState>()(
     (set) => ({
       channels: loadChannels(),
       
-      addChannel: (name: string) => {
-        const value = name.toLowerCase().replace(/\s+/g, '-');
+      addChannel: (channel) => {
         set((state) => {
           // Check if channel already exists
-          if (state.channels.some(ch => ch.value === value)) {
+          if (state.channels.some(ch => ch.value === channel.value)) {
             return state;
           }
-          const newChannels = [...state.channels, { label: name, value }];
+          const newChannels = [...state.channels, channel];
           // Save to localStorage
           localStorage.setItem('channels', JSON.stringify(newChannels));
           return { channels: newChannels };

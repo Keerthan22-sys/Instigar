@@ -197,7 +197,10 @@ const LeadsCenter = () => {
           <Skeleton className="h-12 w-full" />
         </div>
       ) : (
-        <LeadTable leads={filteredLeads.length > 0 ? filteredLeads : leads} />
+        <LeadTable 
+          leads={filteredLeads.length > 0 ? filteredLeads : leads} 
+          filters={activeFilters}
+        />
       )}
       
       <CreateLeadModal 
