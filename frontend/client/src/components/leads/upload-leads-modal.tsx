@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { X, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLeadsStore } from "@/hooks/use-leads-store";
 
 interface UploadLeadsModalProps {
   isOpen: boolean;
@@ -12,8 +13,10 @@ interface UploadLeadsModalProps {
 const UploadLeadsModal = ({ isOpen, onClose }: UploadLeadsModalProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const fetchLeads = useLeadsStore((state) => state.fetchLeads);
   
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -59,15 +62,44 @@ const UploadLeadsModal = ({ isOpen, onClose }: UploadLeadsModalProps) => {
     }
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedFile) {
+    if (!selectedFile) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const response = await fetch('/api/leads/csv/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+
       toast({
         title: "Upload successful",
         description: "Your leads have been uploaded successfully",
       });
+
+      // Refresh the leads list
+      await fetchLeads();
       onClose();
       setSelectedFile(null);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload leads",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
   
@@ -128,12 +160,15 @@ const UploadLeadsModal = ({ isOpen, onClose }: UploadLeadsModalProps) => {
             <h3 className="text-sm font-medium text-[#1C1E21] mb-2">CSV Format Guidelines</h3>
             <p className="text-xs text-[#606770] mb-2">Your CSV file should include the following columns:</p>
             <ul className="text-xs text-[#606770] list-disc pl-5 space-y-1">
-              <li>firstName (required)</li>
-              <li>lastName (required)</li>
+              <li>name (required)</li>
+              <li>stage (required)</li>
+              <li>source (required)</li>
+              <li>assignedTo (required)</li>
+              <li>notes (optional)</li>
               <li>email (required)</li>
               <li>phone (required)</li>
-              <li>source (optional)</li>
-              <li>stage (optional)</li>
+              <li>course (optional)</li>
+              <li>dateAdded (required, format: YYYY-MM-DD)</li>
             </ul>
           </div>
           
@@ -149,9 +184,9 @@ const UploadLeadsModal = ({ isOpen, onClose }: UploadLeadsModalProps) => {
             <Button 
               type="submit" 
               className={`${selectedFile ? 'bg-[#0866FF] hover:bg-[#0866FF]/90' : 'bg-gray-300 cursor-not-allowed'} text-white font-medium`}
-              disabled={!selectedFile}
+              disabled={!selectedFile || isUploading}
             >
-              Upload Leads
+              {isUploading ? 'Uploading...' : 'Upload Leads'}
             </Button>
           </div>
         </form>

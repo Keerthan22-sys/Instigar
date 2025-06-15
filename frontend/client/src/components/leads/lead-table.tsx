@@ -7,6 +7,15 @@ import { ChevronDown, ArrowDown, ArrowUpDown } from "lucide-react";
 import LeadInitials from "@/components/leads/lead-initials";
 import { type Lead } from "@shared/schema";
 import EditLeadModal from "./edit-lead-modal";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 type SortField = "dateAdded" | "name" | "stage" | "channel" | "assignedTo" | "status";
 type SortDirection = "asc" | "desc";
@@ -19,12 +28,15 @@ interface LeadTableProps {
   };
 }
 
+const ITEMS_PER_PAGE = 20;
+
 const LeadTable = ({ leads, filters }: LeadTableProps) => {
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [sortField, setSortField] = useState<SortField>("dateAdded");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const toggleSelectAll = () => {
     if (selectedLeads.length === leads.length) {
@@ -141,6 +153,48 @@ const LeadTable = ({ leads, filters }: LeadTableProps) => {
       }
     });
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredAndSortedLeads.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentLeads = filteredAndSortedLeads.slice(startIndex, endIndex);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('ellipsis');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('ellipsis');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('ellipsis');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('ellipsis');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
   return (
     <div className="bg-white rounded-b-lg shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -149,7 +203,7 @@ const LeadTable = ({ leads, filters }: LeadTableProps) => {
             <TableRow className="bg-white">
               <TableHead className="w-10">
                 <Checkbox 
-                  checked={selectedLeads.length === filteredAndSortedLeads.length && filteredAndSortedLeads.length > 0} 
+                  checked={selectedLeads.length === currentLeads.length && currentLeads.length > 0} 
                   onCheckedChange={toggleSelectAll} 
                 />
               </TableHead>
@@ -213,7 +267,7 @@ const LeadTable = ({ leads, filters }: LeadTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAndSortedLeads.map((lead) => (
+            {currentLeads.map((lead) => (
               <TableRow 
                 key={lead.id} 
                 className={`hover:bg-[#F0F2F5] ${lead.stage === "Converted" ? "bg-green-50" : ""}`}
@@ -287,7 +341,7 @@ const LeadTable = ({ leads, filters }: LeadTableProps) => {
                 </TableCell>
               </TableRow>
             ))}
-            {filteredAndSortedLeads.length === 0 && (
+            {currentLeads.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-[#606770]">
                   No leads found matching the current filters.
@@ -297,6 +351,43 @@ const LeadTable = ({ leads, filters }: LeadTableProps) => {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="py-4 px-6 border-t">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+              
+              {getPageNumbers().map((page, index) => (
+                <PaginationItem key={index}>
+                  {page === 'ellipsis' ? (
+                    <PaginationEllipsis />
+                  ) : (
+                    <PaginationLink
+                      isActive={currentPage === page}
+                      onClick={() => setCurrentPage(page as number)}
+                    >
+                      {page}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              ))}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       {selectedLead && (
         <EditLeadModal
