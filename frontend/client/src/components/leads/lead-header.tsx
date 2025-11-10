@@ -3,33 +3,53 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AddLeadsButton from "@/components/leads/add-leads-button";
 import { Bell, MessageSquare } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface LeadHeaderProps {
   onCreateLead: () => void;
   onUploadLeads: () => void;
+  title?: string;
 }
 
-const LeadHeader = ({ onCreateLead, onUploadLeads }: LeadHeaderProps) => {
+const LeadHeader = ({ onCreateLead, onUploadLeads, title = "Leads" }: LeadHeaderProps) => {
+  const [, navigate] = useLocation();
+  const isWalkinsPage = title === "Walk-ins";
+
   return (
     <div className="flex justify-between items-center mb-6">
-      <h1 className="text-2xl font-semibold text-[#1C1E21]">Leads Centre</h1>
       <div className="flex items-center gap-4">
-        <AddLeadsButton 
-          onCreateLead={onCreateLead} 
-          onUploadLeads={onUploadLeads} 
-        />
-        
-        <div className="relative">
-          <Button variant="outline" className="w-10 h-10 p-0 rounded-full bg-white border border-[#E4E6EB] flex items-center justify-center">
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 bg-[#0866FF] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center border-2 border-white p-0"
-            >
-              1
-            </Badge>
-            <MessageSquare className="h-4 w-4" />
+        <h1 className="text-2xl font-semibold text-[#1C1E21]">{title}</h1>
+        {!isWalkinsPage && (
+          <Button
+            variant="outline"
+            onClick={() => navigate("/walkins")}
+            className="text-[#606770] hover:text-[#1C1E21]"
+          >
+            Walk-ins
           </Button>
-        </div>
+        )}
+        {isWalkinsPage && (
+          <Button
+            variant="outline"
+            onClick={() => navigate("/")}
+            className="text-[#606770] hover:text-[#1C1E21]"
+          >
+            Back to Leads
+          </Button>
+        )}
+      </div>
+      
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          onClick={onUploadLeads}
+          className="text-[#606770] hover:text-[#1C1E21]"
+        >
+          Upload Leads
+        </Button>
+        <Button onClick={onCreateLead}>
+          {isWalkinsPage ? "Add Walk-in" : "Add Lead"}
+        </Button>
       </div>
     </div>
   );

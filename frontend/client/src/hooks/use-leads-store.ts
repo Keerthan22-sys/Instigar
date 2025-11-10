@@ -8,6 +8,7 @@ interface LeadsState {
   isLoading: boolean;
   error: string | null;
   fetchLeads: () => Promise<void>;
+  fetchWalkinsLeads: () => Promise<void>;
   addLead: (lead: any) => Promise<void>;
   updateLead: (id: number, lead: Partial<SpringLead>) => Promise<void>;
   deleteLead: (id: number) => Promise<void>;
@@ -47,7 +48,30 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
   fetchLeads: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiRequest('GET', '/api/leads');
+      const response = await apiRequest('GET', '/api/leads/filter?type=leads');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid response format: expected an array of leads');
+      }
+      const convertedLeads = data.map(convertToLeadDisplay);
+      set({ leads: convertedLeads, isLoading: false });
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to fetch leads', 
+        isLoading: false,
+        leads: [] // Set empty array instead of initialLeads to avoid confusion
+      });
+    }
+  },
+
+  fetchWalkinsLeads: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await apiRequest('GET', '/api/leads/filter?type=admission');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
