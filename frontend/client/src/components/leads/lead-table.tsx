@@ -5,8 +5,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ChevronDown, ArrowDown, ArrowUpDown } from "lucide-react";
 import LeadInitials from "@/components/leads/lead-initials";
-import { type Lead } from "@shared/schema";
+import { type Lead, type WalkinLead } from "@shared/schema";
 import EditLeadModal from "./edit-lead-modal";
+import EditWalkinModal from "@/components/walkins/edit-walkin-modal";
 import {
   Pagination,
   PaginationContent,
@@ -26,11 +27,12 @@ interface LeadTableProps {
     date?: Date;
     filters: Record<string, string[]>;
   };
+  isWalkin?: boolean;
 }
 
 const ITEMS_PER_PAGE = 20;
 
-const LeadTable = ({ leads, filters }: LeadTableProps) => {
+const LeadTable = ({ leads, filters, isWalkin = false }: LeadTableProps) => {
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [sortField, setSortField] = useState<SortField>("dateAdded");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -390,14 +392,25 @@ const LeadTable = ({ leads, filters }: LeadTableProps) => {
       )}
 
       {selectedLead && (
-        <EditLeadModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setSelectedLead(null);
-          }}
-          lead={selectedLead}
-        />
+        isWalkin ? (
+          <EditWalkinModal
+            isOpen={isEditModalOpen}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setSelectedLead(null);
+            }}
+            lead={selectedLead as WalkinLead}
+          />
+        ) : (
+          <EditLeadModal
+            isOpen={isEditModalOpen}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setSelectedLead(null);
+            }}
+            lead={selectedLead}
+          />
+        )
       )}
     </div>
   );

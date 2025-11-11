@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createWalkinLeadSchema, type CreateWalkinLead } from "@shared/schema";
+import { type WalkinLead, walkinLeadDisplaySchema } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
@@ -25,76 +26,88 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { X } from "lucide-react";
+import { useLeadsStore } from "@/hooks/use-leads-store";
 
-interface CreateWalkinModalProps {
+interface EditWalkinModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateLead: (lead: CreateWalkinLead) => void;
+  lead: WalkinLead;
 }
 
-const CreateWalkinModal = ({
-  isOpen,
-  onClose,
-  onCreateLead,
-}: CreateWalkinModalProps) => {
-  const form = useForm<CreateWalkinLead>({
-    resolver: zodResolver(createWalkinLeadSchema),
+const EditWalkinModal = ({ isOpen, onClose, lead }: EditWalkinModalProps) => {
+  const updateLead = useLeadsStore((state) => state.updateLead);
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const form = useForm<WalkinLead>({
+    resolver: zodResolver(walkinLeadDisplaySchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      stage: "Intake",
-      channel: "Walk-ins",
-      assignedTo: "Unassigned",
-      notes: "",
-      course: "",
-      amount: 0,
-      fatherName: "",
-      motherName: "",
-      fatherPhoneNumber: "",
-      motherPhoneNumber: "",
-      address: "",
-      previousInstitution: "",
-      marksObtained: "",
-      type: "walkin"
+      ...lead,
+      dateAdded: typeof lead.dateAdded === 'string' ? new Date(lead.dateAdded) : lead.dateAdded,
+      amount: lead.amount ?? (lead as any).amount ?? 0,
+      fatherName: lead.fatherName ?? (lead as any).fatherName ?? '',
+      motherName: lead.motherName ?? (lead as any).motherName ?? '',
+      fatherPhoneNumber: lead.fatherPhoneNumber ?? (lead as any).fatherPhoneNumber ?? '',
+      motherPhoneNumber: lead.motherPhoneNumber ?? (lead as any).motherPhoneNumber ?? '',
+      address: lead.address ?? (lead as any).address ?? '',
+      previousInstitution: lead.previousInstitution ?? (lead as any).previousInstitution ?? '',
+      marksObtained: lead.marksObtained ?? (lead as any).marksObtained ?? '',
+      type: 'walkin' as const,
     },
   });
 
-  const onSubmit = (values: CreateWalkinLead) => {
-    // Format data for Spring Boot API - same format as leads page
-    const apiData = {
-      name: `${values.firstName} ${values.lastName}`,
-      email: values.email,
-      phone: values.phone,
-      stage: values.stage,
-      source: values.channel.toLowerCase().replace(/\s+/g, '-'), // Transform channel to source and normalize
-      assignedTo: values.assignedTo,
-      notes: values.notes || '',
-      course: values.course || '',
-      dateAdded: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
-      type: values.type || 'walkin',
-      amount: values.amount || 0,
-      // Walkin-specific fields
-      fatherName: values.fatherName,
-      motherName: values.motherName,
-      fatherPhoneNumber: values.fatherPhoneNumber,
-      motherPhoneNumber: values.motherPhoneNumber,
-      address: values.address,
-      previousInstitution: values.previousInstitution,
-      marksObtained: values.marksObtained,
-    };
-    
-    console.log('Submitting walkin lead data:', apiData); // Debug log
-    onCreateLead(apiData as any);
-    form.reset();
+  const onSubmit = async (values: WalkinLead) => {
+    try {
+      setIsSubmitting(true);
+      // Format data for Spring Boot API - same format as create
+      const apiData = {
+        name: `${values.firstName} ${values.lastName}`,
+        email: values.email,
+        phone: values.phone,
+        stage: values.stage,
+        source: values.channel.toLowerCase().replace(/\s+/g, '-'),
+        assignedTo: values.assignedTo,
+        notes: values.notes || '',
+        course: values.course || '',
+        dateAdded: values.dateAdded instanceof Date 
+          ? values.dateAdded.toISOString().split('T')[0] 
+          : values.dateAdded,
+        type: 'walkin',
+        amount: values.amount ?? 0,
+        // Walkin-specific fields
+        fatherName: values.fatherName,
+        motherName: values.motherName,
+        fatherPhoneNumber: values.fatherPhoneNumber,
+        motherPhoneNumber: values.motherPhoneNumber,
+        address: values.address,
+        previousInstitution: values.previousInstitution,
+        marksObtained: values.marksObtained,
+      };
+      
+      await updateLead(lead.id, apiData);
+      // Refresh the walkins list after successful update
+      // The store will automatically update the leads list
+      onClose();
+    } catch (error) {
+      console.error("Error updating walkin lead:", error);
+      alert(error instanceof Error ? error.message : 'Failed to update walkin lead. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        onClose();
+      }
+    }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add New Walk-in Lead</DialogTitle>
+        <DialogHeader className="flex justify-between items-center">
+          <DialogTitle className="text-xl font-semibold text-[#1C1E21]">Edit Walk-in Lead</DialogTitle>
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-[#606770]">
+            <X className="h-4 w-4" />
+          </Button>
         </DialogHeader>
 
         <Form {...form}>
@@ -294,7 +307,7 @@ const CreateWalkinModal = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Stage</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select stage" />
@@ -364,7 +377,9 @@ const CreateWalkinModal = ({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit">Create Lead</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
             </div>
           </form>
         </Form>
@@ -373,4 +388,5 @@ const CreateWalkinModal = ({
   );
 };
 
-export default CreateWalkinModal; 
+export default EditWalkinModal;
+

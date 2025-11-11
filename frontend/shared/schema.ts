@@ -15,11 +15,21 @@ export const springLeadSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(1, "Phone number is required"),
   course: z.string().optional().default(""),
+  amount: z.number().optional().default(0),
   dateAdded: z.string().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
   createdBy: z.string().optional().default(""),
-  updatedBy: z.string().optional().default("")
+  updatedBy: z.string().optional().default(""),
+  // Walkin-specific fields (optional for API responses)
+  fatherName: z.string().optional(),
+  motherName: z.string().optional(),
+  fatherPhoneNumber: z.string().optional(),
+  motherPhoneNumber: z.string().optional(),
+  address: z.string().optional(),
+  previousInstitution: z.string().optional(),
+  marksObtained: z.string().optional(),
+  type: z.string().optional()
 });
 
 // Schema for creating a lead from the frontend form
@@ -49,7 +59,8 @@ export const leadDisplaySchema = z.object({
   dateAdded: z.date().or(z.string()),
   action: z.string().optional().default("Complete form"),
   notes: z.string().optional(),
-  course: z.string().optional()
+  course: z.string().optional(),
+  amount: z.number().optional().default(0)
 });
 
 // Schema for creating a walk-in lead from the frontend form
@@ -63,6 +74,7 @@ export const createWalkinLeadSchema = z.object({
   assignedTo: z.string().default("Unassigned"),
   notes: z.string().optional().default(""),
   course: z.string().optional().default(""),
+  amount: z.number().optional().default(0),
   fatherName: z.string().min(1, "Father's name is required"),
   motherName: z.string().min(1, "Mother's name is required"),
   fatherPhoneNumber: z.string().min(1, "Father's phone number is required"),
@@ -88,6 +100,7 @@ export const walkinLeadDisplaySchema = z.object({
   action: z.string().optional().default("Complete form"),
   notes: z.string().optional(),
   course: z.string().optional(),
+  amount: z.number().optional().default(0),
   fatherName: z.string(),
   motherName: z.string(),
   fatherPhoneNumber: z.string(),

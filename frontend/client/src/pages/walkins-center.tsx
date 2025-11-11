@@ -11,20 +11,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { isSameDay } from "date-fns";
-import { WalkinLead } from "@shared/schema";
+import { type Lead, type CreateWalkinLead } from "@shared/schema";
 
 const WalkinsCenter = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
   const [activeFilters, setActiveFilters] = useState<FilterState>({ filters: {} });
-  const [filteredLeads, setFilteredLeads] = useState<WalkinLead[]>([]);
+  const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   
   const leads = useLeadsStore((state) => state.leads);
   const isLoading = useLeadsStore((state) => state.isLoading);
   const error = useLeadsStore((state) => state.error);
   const fetchWalkinsLeads = useLeadsStore((state) => state.fetchWalkinsLeads);
-  const addLead = useLeadsStore((state) => state.addLead);
+  const addWalkinLead = useLeadsStore((state) => state.addWalkinLead);
   
   // Fetch leads on component mount
   useEffect(() => {
@@ -101,8 +101,8 @@ const WalkinsCenter = () => {
     setIsUploadModalOpen(false);
   };
 
-  const handleCreateLead = async (lead: WalkinLead) => {
-    await addLead({ ...lead, type: "walkin" });
+  const handleCreateLead = async (lead: CreateWalkinLead) => {
+    await addWalkinLead(lead);
     closeCreateModal();
   };
 
@@ -174,6 +174,7 @@ const WalkinsCenter = () => {
         <LeadTable 
           leads={filteredLeads.length > 0 ? filteredLeads : leads} 
           filters={activeFilters}
+          isWalkin={true}
         />
       )}
       
