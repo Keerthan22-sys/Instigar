@@ -33,11 +33,25 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
-  let token = localStorage.getItem("auth_token");
+  
+  // Check localStorage availability
+  let token: string | null = null;
+  try {
+    token = localStorage.getItem("auth_token");
+  } catch (error) {
+    console.error('❌ localStorage access error:', error);
+    throw new Error('Cannot access localStorage. Please check browser settings.');
+  }
   
   // Clean token if it exists (remove any whitespace)
   if (token) {
     token = token.trim();
+    // Re-store the cleaned token
+    try {
+      localStorage.setItem("auth_token", token);
+    } catch (error) {
+      console.error('❌ Failed to update token in localStorage:', error);
+    }
   }
   
   console.log('🚀 API Request:', method, fullUrl);
@@ -45,6 +59,20 @@ export async function apiRequest(
   if (token) {
     console.log('🔑 Token length:', token.length);
     console.log('🔑 Token preview:', token.substring(0, 20) + '...');
+  } else {
+    // Check all localStorage keys to debug
+    try {
+      const allKeys = Object.keys(localStorage);
+      console.warn('⚠️ Available localStorage keys:', allKeys);
+      console.warn('⚠️ Searching for token in other keys...');
+      for (const key of allKeys) {
+        if (key.toLowerCase().includes('token') || key.toLowerCase().includes('auth')) {
+          console.warn(`⚠️ Found potential token key: ${key}`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Cannot enumerate localStorage keys:', error);
+    }
   }
   
   const headers: HeadersInit = {
@@ -82,10 +110,18 @@ export async function apiRequest(
       if (res.status === 403) {
         if (token) {
           console.warn('⚠️ 403 Forbidden - clearing potentially invalid token');
-          localStorage.removeItem("auth_token");
+          try {
+            localStorage.removeItem("auth_token");
+            console.log('✅ Token cleared from localStorage');
+          } catch (error) {
+            console.error('❌ Failed to clear token from localStorage:', error);
+          }
           // Note: Auth state will be updated via the queryClient subscription in use-auth.tsx
+        } else {
+          console.error('❌ 403 Forbidden but no token was sent! This indicates a critical authentication issue.');
+          console.error('❌ User may need to log in again. Check if localStorage is working properly.');
         }
-        throw new Error(`Access forbidden (403). ${errorText || 'Your authentication token may be invalid or expired. Please try logging in again.'}`);
+        throw new Error(`Access forbidden (403). ${errorText || (token ? 'Your authentication token may be invalid or expired. Please try logging in again.' : 'No authentication token found. Please log in.')}`);
       }
       
       throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);

@@ -39,18 +39,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   
   // Use useState to make user state reactive
+  // Note: "/api/user" is used as a cache key only, not an actual API endpoint
   const [user, setUser] = useState<Omit<SelectUser, 'password'> | null>(() => {
-    // Initialize from queryClient cache if available
-    return queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]) ?? null;
+    // Initialize from queryClient cache if available (cache key, not API endpoint)
+    const cachedUser = queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]);
+    
+    // Also check if token exists in localStorage - if it does, we should have a user
+    const token = localStorage.getItem("auth_token");
+    if (token && !cachedUser) {
+      console.log('🔑 Token found in localStorage but no cached user - restoring user from token');
+      // If token exists but no cached user, create user object from token context
+      // We'll set it after login, so this is just for initialization
+    }
+    
+    return cachedUser ?? null;
   });
   
-  // Sync with queryClient cache changes - only for the user query
+  // Sync with queryClient cache changes - only for the user cache key
+  // Note: "/api/user" is a cache key, not an actual API endpoint
   useEffect(() => {
-    // Subscribe only to changes in the user query
+    // Check token on mount and verify consistency
+    const token = localStorage.getItem("auth_token");
+    const cachedUser = queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]);
+    
+    if (token && !cachedUser) {
+      console.warn('⚠️ Token exists but no cached user - attempting to restore user state');
+      // If token exists, we should have a user - try to restore from token
+      // Since we don't have a /api/user endpoint, we'll create a minimal user object
+      // The actual user data will come from successful login/register operations
+      // For now, we'll just log this - the user will need to log in again if state is lost
+      console.warn('⚠️ User state lost but token exists - user may need to refresh or re-authenticate');
+    }
+    if (!token && cachedUser) {
+      console.warn('⚠️ User is cached but no token found - clearing user state');
+      queryClient.setQueryData(["/api/user"], null);
+      setUser(null);
+    }
+    
+    // Subscribe only to changes in the user cache key
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      // Only update if the user query changed
+      // Only update if the user cache key changed
       if (event?.query?.queryKey?.[0] === "/api/user") {
         const cachedUser = queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]);
+        const currentToken = localStorage.getItem("auth_token");
+        
+        // Verify token consistency
+        if (cachedUser && !currentToken) {
+          console.warn('⚠️ User state exists but token is missing - clearing user state');
+          queryClient.setQueryData(["/api/user"], null);
+          setUser(null);
+          return;
+        }
+        
         setUser((prevUser) => {
           // Only update if the value actually changed to avoid unnecessary re-renders
           if (cachedUser !== prevUser) {
@@ -93,6 +133,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         localStorage.setItem("auth_token", data.token);
         console.log('✅ Token stored successfully');
+        
+        // Verify token was stored
+        const storedToken = localStorage.getItem("auth_token");
+        if (!storedToken || storedToken !== data.token) {
+          console.error('❌ Token storage verification failed!');
+          throw new Error('Failed to store authentication token');
+        }
+        console.log('✅ Token storage verified:', storedToken.substring(0, 20) + '...');
 
         return {
           id: 1,
@@ -105,7 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (userData) => {
       console.log('✅ Login successful:', userData);
-      console.log('🔄 Updating user state and query cache');
+      console.log('🔄 Updating user state and query cache (cache key: /api/user)');
+      // Store user data in cache using "/api/user" as cache key (not an API endpoint)
       queryClient.setQueryData(["/api/user"], userData);
       setUser(userData); // Update state immediately
       console.log('✅ User state updated, component should re-render');
