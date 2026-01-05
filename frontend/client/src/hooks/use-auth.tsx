@@ -5,9 +5,13 @@ import {
   UseMutationResult,
 } from "@tanstack/react-query";
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
-import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import Cookies from "js-cookie";
+
+// Get API base URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+
+console.log('🔧 API Base URL:', API_BASE_URL); // Debug log
 
 type AuthContextType = {
   user: Omit<SelectUser, 'password'> | null;
@@ -21,6 +25,7 @@ type AuthContextType = {
 type LoginData = Pick<InsertUser, "username" | "password">;
 type AuthResponse = {
   token: string;
+  username?: string;
   message?: string;
 };
 
@@ -32,46 +37,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || "http://localhost:8080"}/api/auth/login`, {
+        console.log('🚀 Attempting login to:', `${API_BASE_URL}/api/auth/login`);
+        
+        const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          credentials: 'include',
           body: JSON.stringify(credentials)
         });
 
+        console.log('📡 Response status:', res.status);
+
         const rawResponse = await res.text();
+        console.log('📦 Raw response:', rawResponse);
         
         if (!res.ok) {
           throw new Error(rawResponse || 'Login request failed');
         }
 
-        try {
-          const data = JSON.parse(rawResponse) as AuthResponse;
-          if (!data.token) {
-            throw new Error('No token received from server');
-          }
-          
-          Cookies.set("auth_token", data.token, { 
-            expires: 7,
-            path: '/'
-          });
-
-          return {
-            id: 1,
-            username: credentials.username
-          };
-        } catch (e) {
-          throw new Error('Invalid response from server');
+        const data = JSON.parse(rawResponse) as AuthResponse;
+        
+        if (!data.token) {
+          throw new Error('No token received from server');
         }
+        
+        // Store token in localStorage (works across domains)
+        localStorage.setItem("auth_token", data.token);
+        console.log('✅ Token stored successfully');
+
+        return {
+          id: 1,
+          username: credentials.username
+        };
       } catch (error) {
-        console.error('Login error:', error);
+        console.error('❌ Login error:', error);
         throw error;
       }
     },
     onSuccess: (userData) => {
-      console.log('Login mutation succeeded:', userData);
+      console.log('✅ Login successful:', userData);
       queryClient.setQueryData(["/api/user"], userData);
       toast({
         title: "Login successful",
@@ -79,8 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
-      console.error('Login mutation failed:', error);
-      Cookies.remove("auth_token", { path: '/' });
+      console.error('❌ Login failed:', error);
+      localStorage.removeItem("auth_token");
       toast({
         title: "Login failed",
         description: error.message,
@@ -89,14 +94,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // Remove the initial user query since we don't need it anymore
   const user = queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]);
   const isLoading = false;
   const error = null;
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
+      console.log('🚀 Attempting registration to:', `${API_BASE_URL}/api/auth/register`);
+      
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(credentials)
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Registration failed');
+      }
+
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
@@ -117,9 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      // Clear auth token from cookies
-      Cookies.remove("auth_token");
-      await apiRequest("POST", "/api/logout");
+      // Clear auth token from localStorage
+      localStorage.removeItem("auth_token");
+      console.log('✅ Token removed, user logged out');
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);

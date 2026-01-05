@@ -1,14 +1,14 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import Cookies from "js-cookie";
 
 // Base URL for Spring Boot API
-const REACT_APP_API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 
+console.log('🔧 API Base URL in queryClient:', API_BASE_URL); // Debug log
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    throw new Error(`${res.status}: ${text}`); // Fixed template literal
   }
 }
 
@@ -18,16 +18,18 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   // Ensure URL has correct base for Spring Boot API
-  const fullUrl = url.startsWith("http") ? url : `${REACT_APP_API_BASE_URL}${url}`;
+  const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
   
-  // Get auth token from cookies
-  const token = Cookies.get("auth_token");
+  // Get auth token from localStorage (NOT cookies - cross-domain issue)
+  const token = localStorage.getItem("auth_token");
+  
+  console.log('🚀 API Request:', method, fullUrl);
+  console.log('🔑 Token present:', !!token);
   
   // Prepare headers
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     "Accept": "application/json",
-    "Origin": "http://localhost:3001"
   };
   
   // Add authorization header if token exists
@@ -40,32 +42,39 @@ export async function apiRequest(
       method,
       headers,
       body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
-      mode: "cors" // Explicitly set CORS mode
+      // Remove credentials: "include" - not needed with Bearer token
+      // Remove Origin header - browser sets this automatically
     });
-
+    
+    console.log('📡 Response status:', res.status);
+    
     if (!res.ok) {
       const errorText = await res.text();
-      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`); // Fixed template literal
     }
-
+    
     return res;
   } catch (error) {
-    console.error('API request failed:', error);
+    console.error('❌ API request failed:', error);
     throw error;
   }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
+
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
-    const fullUrl = url.startsWith("http") ? url : `${REACT_APP_API_BASE_URL}${url}`;
+    const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
     
-    const token = Cookies.get("auth_token");
+    // Get token from localStorage
+    const token = localStorage.getItem("auth_token");
+    
+    console.log('🔍 Query:', fullUrl);
+    
     const headers: HeadersInit = {
       "Accept": "application/json"
     };
@@ -75,14 +84,14 @@ export const getQueryFn: <T>(options: {
     }
     
     const res = await fetch(fullUrl, {
-      credentials: "include",
       headers
+      // Remove credentials: "include"
     });
-
+    
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
     }
-
+    
     await throwIfResNotOk(res);
     return await res.json();
   };
