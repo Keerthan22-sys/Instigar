@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
@@ -10,6 +11,20 @@ export function ProtectedRoute({
   component: () => React.JSX.Element;
 }) {
   const { user, isLoading } = useAuth();
+  
+  // Check if user state exists but token is missing (critical auth issue)
+  useEffect(() => {
+    if (user) {
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        console.error('❌ CRITICAL: User state exists but token is missing!');
+        console.error('❌ This indicates localStorage was cleared or token was lost');
+        console.error('❌ Redirecting to login...');
+        // Clear user state and redirect will happen automatically
+        window.location.href = '/auth';
+      }
+    }
+  }, [user]);
   
   console.log('🔒 ProtectedRoute:', { path, hasUser: !!user, isLoading });
 

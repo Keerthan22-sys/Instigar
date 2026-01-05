@@ -34,12 +34,47 @@ export async function apiRequest(
 ): Promise<Response> {
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
   
-  // Check localStorage availability
+  // Check localStorage availability and token
   let token: string | null = null;
   try {
+    // Test localStorage access first
+    const testKey = '__localStorage_test__';
+    localStorage.setItem(testKey, 'test');
+    localStorage.removeItem(testKey);
+    
+    // Now get the token
     token = localStorage.getItem("auth_token");
+    
+    // Debug: Log all localStorage contents if token is missing
+    if (!token) {
+      console.error('❌ CRITICAL: Token not found in localStorage!');
+      console.error('❌ Checking all localStorage keys...');
+      const allKeys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          allKeys.push(key);
+          console.error(`  - Key: ${key}, Value: ${localStorage.getItem(key)?.substring(0, 50)}...`);
+        }
+      }
+      console.error('❌ All localStorage keys:', allKeys);
+      console.error('❌ localStorage.length:', localStorage.length);
+      
+      // Check if token might be in sessionStorage
+      try {
+        const sessionToken = sessionStorage.getItem("auth_token");
+        if (sessionToken) {
+          console.warn('⚠️ Token found in sessionStorage instead! Moving to localStorage...');
+          localStorage.setItem("auth_token", sessionToken);
+          token = sessionToken;
+        }
+      } catch (e) {
+        console.error('❌ Cannot access sessionStorage:', e);
+      }
+    }
   } catch (error) {
     console.error('❌ localStorage access error:', error);
+    console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
     throw new Error('Cannot access localStorage. Please check browser settings.');
   }
   

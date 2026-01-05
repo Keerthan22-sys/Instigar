@@ -131,16 +131,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error('No token received from server');
         }
         
-        localStorage.setItem("auth_token", data.token);
-        console.log('✅ Token stored successfully');
-        
-        // Verify token was stored
-        const storedToken = localStorage.getItem("auth_token");
-        if (!storedToken || storedToken !== data.token) {
-          console.error('❌ Token storage verification failed!');
-          throw new Error('Failed to store authentication token');
+        // Store token with comprehensive error handling
+        try {
+          localStorage.setItem("auth_token", data.token);
+          console.log('✅ Token stored in localStorage');
+          
+          // Verify token was stored immediately
+          const storedToken = localStorage.getItem("auth_token");
+          if (!storedToken) {
+            console.error('❌ CRITICAL: Token storage verification failed - token is null!');
+            throw new Error('Failed to store authentication token - localStorage returned null');
+          }
+          if (storedToken !== data.token) {
+            console.error('❌ CRITICAL: Token storage verification failed - token mismatch!');
+            console.error('  Expected:', data.token.substring(0, 20) + '...');
+            console.error('  Got:', storedToken.substring(0, 20) + '...');
+            throw new Error('Failed to store authentication token - token mismatch');
+          }
+          console.log('✅ Token storage verified:', storedToken.substring(0, 20) + '...');
+          console.log('✅ Token length:', storedToken.length);
+          
+          // Also store in sessionStorage as backup
+          try {
+            sessionStorage.setItem("auth_token", data.token);
+            console.log('✅ Token also stored in sessionStorage as backup');
+          } catch (e) {
+            console.warn('⚠️ Could not store token in sessionStorage:', e);
+          }
+        } catch (storageError) {
+          console.error('❌ CRITICAL: Failed to store token in localStorage:', storageError);
+          // Try sessionStorage as fallback
+          try {
+            sessionStorage.setItem("auth_token", data.token);
+            console.log('✅ Token stored in sessionStorage as fallback');
+          } catch (e) {
+            console.error('❌ CRITICAL: Cannot store token in sessionStorage either:', e);
+            throw new Error('Cannot store authentication token. localStorage and sessionStorage are both unavailable.');
+          }
         }
-        console.log('✅ Token storage verified:', storedToken.substring(0, 20) + '...');
 
         return {
           id: 1,
