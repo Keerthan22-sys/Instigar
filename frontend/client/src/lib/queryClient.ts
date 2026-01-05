@@ -2,7 +2,7 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import Cookies from "js-cookie";
 
 // Base URL for Spring Boot API
-const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8080";
+const REACT_APP_API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 
 
 async function throwIfResNotOk(res: Response) {
@@ -18,7 +18,7 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   // Ensure URL has correct base for Spring Boot API
-  const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+  const fullUrl = url.startsWith("http") ? url : `${REACT_APP_API_BASE_URL}${url}`;
   
   // Get auth token from cookies
   const token = Cookies.get("auth_token");
@@ -63,7 +63,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
-    const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+    const fullUrl = url.startsWith("http") ? url : `${REACT_APP_API_BASE_URL}${url}`;
     
     const token = Cookies.get("auth_token");
     const headers: HeadersInit = {
