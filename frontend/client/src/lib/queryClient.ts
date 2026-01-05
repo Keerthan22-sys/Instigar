@@ -27,7 +27,7 @@ export async function apiRequest(
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     "Accept": "application/json",
-    "Origin": process.env.API_BASE_URL || "http://localhost:3001"
+    "Origin": "http://localhost:3001"
   };
   
   // Add authorization header if token exists
