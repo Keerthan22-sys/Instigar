@@ -86,6 +86,7 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
   fetchLeads: async () => {
     set({ isLoading: true, error: null });
     try {
+      console.log('Fetching leads from API');
       const response = await apiRequest('GET', '/api/leads/filter?type=leads');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
