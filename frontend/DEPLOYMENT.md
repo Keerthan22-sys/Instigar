@@ -57,6 +57,18 @@ This guide explains how to deploy the frontend application to Vercel and connect
 
 ## Troubleshooting
 
+### Browser Extension Errors (Can be Ignored)
+
+**Problem**: You see errors like:
+- "Host is not supported" / "Host is not valid or supported"
+- "Host is not in insights whitelist"
+- "A listener indicated an asynchronous response by returning true, but the message channel closed"
+
+**Solution**: These are **browser extension errors** (like Chrome extensions) and are **not related to your application**. They are automatically suppressed by the global error handlers. You can safely ignore them. If they're annoying, you can:
+1. Disable browser extensions temporarily
+2. Use an incognito/private window
+3. The application will continue to work normally despite these errors
+
 ### 404 Error on `/api/auth/login`
 
 **Problem**: The app is trying to fetch from a wrong URL or the environment variable isn't set.

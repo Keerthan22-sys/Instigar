@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -47,8 +47,14 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   
   // If user is already logged in, redirect to homepage
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+  
+  // Don't render if user is logged in (will redirect)
   if (user) {
-    navigate("/");
     return null;
   }
   
