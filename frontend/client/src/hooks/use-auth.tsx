@@ -8,12 +8,13 @@ import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Hardcoded fallback for production
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://your-app-backend-production.up.railway.app'  // ⚠️ REPLACE WITH YOUR ACTUAL RAILWAY URL
-  : (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080');
+// Get API base URL from environment variable (Vite uses import.meta.env)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.MODE === 'production' 
+    ? 'https://your-app-backend-production.up.railway.app'  // ⚠️ REPLACE WITH YOUR ACTUAL RAILWAY URL
+    : 'http://localhost:8080');
 
-console.log('🔧 Environment:', process.env.NODE_ENV);
+console.log('🔧 Environment:', import.meta.env.MODE);
 console.log('🔧 API Base URL:', API_BASE_URL);
 
 type AuthContextType = {

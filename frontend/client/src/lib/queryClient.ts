@@ -1,11 +1,12 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-// Hardcoded fallback for production
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://your-app-backend-production.up.railway.app'  // ⚠️ REPLACE WITH YOUR ACTUAL RAILWAY URL
-  : (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080');
+// Get API base URL from environment variable (Vite uses import.meta.env)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.MODE === 'production' 
+    ? 'https://your-app-backend-production.up.railway.app'  // ⚠️ REPLACE WITH YOUR ACTUAL RAILWAY URL
+    : 'http://localhost:8080');
 
-console.log('🔧 Environment:', process.env.NODE_ENV);
+console.log('🔧 Environment:', import.meta.env.MODE);
 console.log('🔧 API Base URL in queryClient:', API_BASE_URL);
 
 async function throwIfResNotOk(res: Response) {

@@ -1,16 +1,11 @@
 {
-    "rewrites": [
-      {
-        "source": "/(.*)",
-        "destination": "/index.html"
-      }
-    ],
-    "env": {
-      "REACT_APP_API_BASE_URL": "https://your-app-backend-production.up.railway.app"
-    },
-    "build": {
-      "env": {
-        "REACT_APP_API_BASE_URL": "https://your-app-backend-production.up.railway.app"
-      }
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  }
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install"
+}
