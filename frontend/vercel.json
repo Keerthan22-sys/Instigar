@@ -1,4 +1,10 @@
 {
+    "rewrites": [
+      {
+        "source": "/(.*)",
+        "destination": "/index.html"
+      }
+    ],
     "env": {
       "REACT_APP_API_BASE_URL": "https://your-app-backend-production.up.railway.app"
     },
