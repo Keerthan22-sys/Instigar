@@ -21,7 +21,7 @@ export default defineConfig({
   },
   build: {
     outDir: path.join(__dirname, 'dist'),
-    emptyOutDir: true,
+    emptyOutDir: true
   },
   resolve: {
     alias: {
