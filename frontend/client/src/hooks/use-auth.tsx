@@ -8,10 +8,13 @@ import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Get API base URL from environment variable
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+// Hardcoded fallback for production
+const API_BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://your-app-backend-production.up.railway.app'  // ⚠️ REPLACE WITH YOUR ACTUAL RAILWAY URL
+  : (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080');
 
-console.log('🔧 API Base URL:', API_BASE_URL); // Debug log
+console.log('🔧 Environment:', process.env.NODE_ENV);
+console.log('🔧 API Base URL:', API_BASE_URL);
 
 type AuthContextType = {
   user: Omit<SelectUser, 'password'> | null;
@@ -62,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error('No token received from server');
         }
         
-        // Store token in localStorage (works across domains)
         localStorage.setItem("auth_token", data.token);
         console.log('✅ Token stored successfully');
 
@@ -135,7 +137,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      // Clear auth token from localStorage
       localStorage.removeItem("auth_token");
       console.log('✅ Token removed, user logged out');
     },
