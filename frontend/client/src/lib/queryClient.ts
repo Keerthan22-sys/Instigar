@@ -2,7 +2,8 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import Cookies from "js-cookie";
 
 // Base URL for Spring Boot API
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8080";
+
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
