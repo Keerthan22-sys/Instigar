@@ -46,19 +46,7 @@ export default function AuthPage() {
   const [, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   
-  // If user is already logged in, redirect to homepage
-  useEffect(() => {
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
-  
-  // Don't render if user is logged in (will redirect)
-  if (user) {
-    return null;
-  }
-  
-  // Login form
+  // Login form - MUST be called before any conditional returns
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -67,7 +55,7 @@ export default function AuthPage() {
     },
   });
   
-  // Register form
+  // Register form - MUST be called before any conditional returns
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -76,6 +64,19 @@ export default function AuthPage() {
       confirmPassword: "",
     },
   });
+  
+  // If user is already logged in, redirect to homepage
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+  
+  // Don't render if user is logged in (will redirect)
+  // This must come AFTER all hooks are called
+  if (user) {
+    return null;
+  }
   
   // Handle login form submission
   const onLoginSubmit = (values: LoginFormValues) => {

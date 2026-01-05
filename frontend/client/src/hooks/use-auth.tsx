@@ -44,11 +44,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]) ?? null;
   });
   
-  // Sync with queryClient cache changes
+  // Sync with queryClient cache changes - only for the user query
   useEffect(() => {
-    const unsubscribe = queryClient.getQueryCache().subscribe(() => {
-      const cachedUser = queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]);
-      setUser(cachedUser ?? null);
+    // Subscribe only to changes in the user query
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      // Only update if the user query changed
+      if (event?.query?.queryKey?.[0] === "/api/user") {
+        const cachedUser = queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]);
+        setUser((prevUser) => {
+          // Only update if the value actually changed to avoid unnecessary re-renders
+          if (cachedUser !== prevUser) {
+            return cachedUser ?? null;
+          }
+          return prevUser;
+        });
+      }
     });
     return unsubscribe;
   }, []);
