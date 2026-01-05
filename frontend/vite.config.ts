@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [react()],
   root: path.join(__dirname, 'client'),
+  base: '/', // ← ADD THIS - critical for Vercel
   server: {
     port: 3001,
     proxy: {
@@ -20,7 +21,7 @@ export default defineConfig({
   },
   build: {
     outDir: path.join(__dirname, 'dist'),
-    emptyOutDir: true
+    emptyOutDir: true,
   },
   resolve: {
     alias: {
