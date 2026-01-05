@@ -141,22 +141,62 @@ export async function apiRequest(
         hasToken: !!token
       });
       
-      // If 403, clear invalid token and provide helpful error
+      // If 403, check if it's a token issue or permission issue
       if (res.status === 403) {
-        if (token) {
-          console.warn('⚠️ 403 Forbidden - clearing potentially invalid token');
+        console.error('❌ 403 Forbidden Error Details:');
+        console.error('  - URL:', fullUrl);
+        console.error('  - Method:', method);
+        console.error('  - Has Token:', !!token);
+        console.error('  - Error Body:', errorText || '(empty)');
+        console.error('  - Response Headers:', Object.fromEntries(res.headers.entries()));
+        
+        // Check if it's likely a CORS issue (empty body + 403)
+        if (!errorText && token) {
+          console.error('⚠️ 403 with empty body - this might be a CORS or backend configuration issue');
+          console.error('⚠️ Backend might be rejecting the request before processing the token');
+          console.error('⚠️ Check backend CORS configuration and ensure it allows:');
+          console.error('    - Origin: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown'));
+          console.error('    - Headers: Authorization, Content-Type');
+          console.error('    - Methods: GET, POST, PUT, DELETE');
+          // Don't clear token - this is likely a backend config issue
+        }
+        
+        // Don't automatically clear token on 403 - it might be a permission issue, not auth issue
+        // Only clear if the error message specifically indicates token issues
+        const isTokenError = errorText && (
+          errorText.toLowerCase().includes('token') ||
+          errorText.toLowerCase().includes('unauthorized') ||
+          errorText.toLowerCase().includes('authentication') ||
+          errorText.toLowerCase().includes('expired') ||
+          errorText.toLowerCase().includes('invalid') ||
+          errorText.toLowerCase().includes('jwt')
+        );
+        
+        if (token && isTokenError) {
+          console.warn('⚠️ 403 Forbidden - token appears invalid based on error message');
+          console.warn('⚠️ Error message:', errorText);
           try {
             localStorage.removeItem("auth_token");
-            console.log('✅ Token cleared from localStorage');
+            sessionStorage.removeItem("auth_token");
+            console.log('✅ Token cleared from localStorage and sessionStorage');
           } catch (error) {
-            console.error('❌ Failed to clear token from localStorage:', error);
+            console.error('❌ Failed to clear token from storage:', error);
           }
-          // Note: Auth state will be updated via the queryClient subscription in use-auth.tsx
+        } else if (token && !isTokenError) {
+          console.warn('⚠️ 403 Forbidden - but error does not indicate token issue');
+          console.warn('⚠️ This might be a permission issue or backend configuration problem');
+          console.warn('⚠️ Error message:', errorText || 'No error message (empty body)');
+          console.warn('⚠️ NOT clearing token - user may need different permissions or backend needs configuration');
+          // Don't clear token - might be a permission issue or backend config
         } else {
           console.error('❌ 403 Forbidden but no token was sent! This indicates a critical authentication issue.');
           console.error('❌ User may need to log in again. Check if localStorage is working properly.');
         }
-        throw new Error(`Access forbidden (403). ${errorText || (token ? 'Your authentication token may be invalid or expired. Please try logging in again.' : 'No authentication token found. Please log in.')}`);
+        
+        const errorMessage = errorText || (token 
+          ? 'Access forbidden. This might be a permission issue or backend configuration problem. Check backend CORS settings and user permissions.'
+          : 'No authentication token found. Please log in.');
+        throw new Error(`Access forbidden (403). ${errorMessage}`);
       }
       
       throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
