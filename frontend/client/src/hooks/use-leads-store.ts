@@ -87,6 +87,18 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       console.log('Fetching leads from API');
+      
+      // First, try to debug auth if 403 occurs
+      try {
+        const debugResponse = await apiRequest('GET', '/api/leads/debug-auth');
+        if (debugResponse.ok) {
+          const debugData = await debugResponse.json();
+          console.log('🔍 Auth Debug Info:', debugData);
+        }
+      } catch (debugError) {
+        console.warn('⚠️ Could not fetch debug auth info:', debugError);
+      }
+      
       const response = await apiRequest('GET', '/api/leads/filter?type=leads');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

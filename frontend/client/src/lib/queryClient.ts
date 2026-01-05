@@ -150,6 +150,28 @@ export async function apiRequest(
         console.error('  - Error Body:', errorText || '(empty)');
         console.error('  - Response Headers:', Object.fromEntries(res.headers.entries()));
         
+        // Decode JWT token to check roles (if token exists)
+        if (token) {
+          try {
+            const tokenParts = token.split('.');
+            if (tokenParts.length === 3) {
+              const payload = JSON.parse(atob(tokenParts[1]));
+              console.error('  - Token Payload:', payload);
+              console.error('  - Token Subject (username):', payload.sub);
+              console.error('  - Token Roles/Authorities:', payload.roles || payload.authorities || 'NOT FOUND');
+              console.error('  - Token Expiry:', payload.exp ? new Date(payload.exp * 1000).toISOString() : 'NOT FOUND');
+              
+              if (!payload.roles && !payload.authorities) {
+                console.error('⚠️ CRITICAL: JWT token does not contain roles/authorities!');
+                console.error('⚠️ Backend requires roles: ADMIN, MANAGER, or USER');
+                console.error('⚠️ Check backend JWT token generation - roles must be included in token');
+              }
+            }
+          } catch (e) {
+            console.error('  - Could not decode token:', e);
+          }
+        }
+        
         // Check if it's likely a CORS issue (empty body + 403)
         if (!errorText && token) {
           console.error('⚠️ 403 with empty body - this might be a CORS or backend configuration issue');
