@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -37,6 +37,21 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  
+  // Use useState to make user state reactive
+  const [user, setUser] = useState<Omit<SelectUser, 'password'> | null>(() => {
+    // Initialize from queryClient cache if available
+    return queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]) ?? null;
+  });
+  
+  // Sync with queryClient cache changes
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe(() => {
+      const cachedUser = queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]);
+      setUser(cachedUser ?? null);
+    });
+    return unsubscribe;
+  }, []);
   
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
@@ -80,7 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (userData) => {
       console.log('✅ Login successful:', userData);
+      console.log('🔄 Updating user state and query cache');
       queryClient.setQueryData(["/api/user"], userData);
+      setUser(userData); // Update state immediately
+      console.log('✅ User state updated, component should re-render');
       toast({
         title: "Login successful",
         description: "Welcome back!",
@@ -97,7 +115,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const user = queryClient.getQueryData<Omit<SelectUser, 'password'>>(["/api/user"]);
   const isLoading = false;
   const error = null;
 
@@ -121,7 +138,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
+      const userData = { id: user.id, username: user.username };
+      queryClient.setQueryData(["/api/user"], userData);
+      setUser(userData); // Update state immediately
       toast({
         title: "Registration successful",
         description: "Your account has been created",
@@ -143,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      setUser(null); // Update state immediately
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",
@@ -160,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user: user ?? null,
+        user,
         isLoading,
         error,
         loginMutation,

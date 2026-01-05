@@ -28,7 +28,10 @@ const LeadsCenter = () => {
   
   // Fetch leads on component mount
   useEffect(() => {
-    fetchLeads();
+    console.log('📥 LeadsCenter mounted, fetching leads...');
+    fetchLeads().catch((error) => {
+      console.error('❌ Error in fetchLeads:', error);
+    });
   }, [fetchLeads]);
 
   // Apply filters when leads or filter state changes
