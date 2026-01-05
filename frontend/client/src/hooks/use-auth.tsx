@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       try {
-        const res = await fetch('http://localhost:8080/api/auth/login', {
+        const res = await fetch(`${process.env.API_BASE_URL || "http://localhost:8080"}/api/auth/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
